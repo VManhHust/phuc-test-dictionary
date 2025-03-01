@@ -8,6 +8,7 @@ export class WordController {
   @Get('/find-word')
   async findWord(@Query('word') word: string): Promise<Word> {
     const result = await this.wordService.findWord(word);
+    console.log('Received word:', word); // Debug để kiểm tra đầu vào
     if (!result) {
       throw new NotFoundException(`Từ "${word}" không tìm thấy trong từ điển`);
     }
