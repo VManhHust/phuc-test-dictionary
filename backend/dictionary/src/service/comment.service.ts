@@ -5,6 +5,7 @@ import {PostEntity} from "../entity/post.entity";
 import {User} from "../entity/user.entity";
 import {CreateCommentDto} from "../dto/create-comment.dto";
 import {Comment} from "../entity/comment.entity";
+import {Reply} from "../entity/reply.entity";
 
 @Injectable()
 export class CommentService {
@@ -15,6 +16,8 @@ export class CommentService {
         private readonly postRepository: Repository<PostEntity>,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+        @InjectRepository(Reply)
+        private readonly replyRepository: Repository<Reply>,
     ) {
     }
 
