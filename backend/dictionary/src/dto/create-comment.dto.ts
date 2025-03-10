@@ -1,4 +1,4 @@
-export class CreateCommentDto {
+export interface CreateCommentDto {
     postId: string;
     userId: string;
     content: string;

@@ -25,12 +25,12 @@ export class CommentService {
         const {postId, userId, content} = createCommentDto;
         const post = await this.postRepository.findOne({where: {id: postId}});
         if (!post) {
-            throw new NotFoundException(`Bài viết với ID "${postId}" không tồn tại.`);
+            throw new NotFoundException(`Bài viết "${postId}" không tồn tại.`);
         }
 
         const user = await this.userRepository.findOne({where: {id: userId}});
         if (!user) {
-            throw new NotFoundException(`Người dùng với ID "${userId}" không tồn tại.`);
+            throw new NotFoundException(`Người dùng "${userId}" không tồn tại.`);
         }
 
         const comment = new Comment();

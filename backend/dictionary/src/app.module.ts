@@ -20,6 +20,7 @@ import {EtymologyModule} from './module/etymology.module';
 import {DefinitionModule} from './module/definition.module';
 import {PostModule} from './module/post.module';
 import {CommentModule} from "./module/comment.module";
+import {ReplyModule} from "./module/reply.module";
 
 @Module({
     imports: [
@@ -37,6 +38,9 @@ import {CommentModule} from "./module/comment.module";
                 schema: configService.get<string>('DB_SCHEMA'),
                 autoLoadEntities: true,
                 synchronize: process.env.NODE_ENV !== 'production', // Chỉ bật trong môi trường dev
+                extra: {
+                    options: '-c timezone=Asia/Ho_Chi_Minh',
+                },
             }),
         }),
         TypeOrmModule.forFeature([User, Word, Definition, Etymology, Synonym, Statistic, Comment, PostEntity, Reply, SearchLog]),
@@ -45,7 +49,8 @@ import {CommentModule} from "./module/comment.module";
         EtymologyModule,
         DefinitionModule,
         PostModule,
-        CommentModule
+        CommentModule,
+        ReplyModule
     ],
     controllers: [AppController],
     providers: [AppService],
