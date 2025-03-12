@@ -6,7 +6,7 @@ export class Etymology {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Word, (word) => word.etymologies, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Word, (word) => word.etymologies, { onDelete: 'SET NULL', nullable: true })
   word: Word;
 
   @Column()

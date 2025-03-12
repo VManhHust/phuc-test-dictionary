@@ -6,7 +6,7 @@ export class Synonym {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Word, (word) => word.synonyms, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Word, (word) => word.synonyms, { onDelete: 'SET NULL', nullable: true })
   word: Word;
 
   @Column()

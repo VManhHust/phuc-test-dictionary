@@ -6,7 +6,7 @@ export class Definition {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Word, (word) => word.definitions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Word, (word) => word.definitions, { onDelete: 'SET NULL', nullable: true })
   word: Word;
 
   @Column()

@@ -1,6 +1,8 @@
-import { Controller, Get, NotFoundException, Query } from '@nestjs/common';
+import {Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, Query} from '@nestjs/common';
 import { WordService } from '../service/word.service';
 import { Word } from '../entity/word.entity';
+import {CreateWordDto} from "../dto/create-word.dto";
+import {UpdateWordDto} from "../dto/update-word.dto";
 
 @Controller('words')
 export class WordController {
@@ -13,5 +15,18 @@ export class WordController {
       throw new NotFoundException(`Từ "${word}" không tìm thấy trong từ điển`);
     }
     return result;
+  }
+  @Post()
+  async create(@Body() createWordDto: CreateWordDto) {
+    return this.wordService.create(createWordDto);
+  }
+  @Put(':id')
+  async update(@Param('id') id: string, @Body() updateWordDto: UpdateWordDto) {
+    return this.wordService.update(id, updateWordDto);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.wordService.remove(id);
   }
 }
