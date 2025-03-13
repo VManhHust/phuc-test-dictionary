@@ -51,7 +51,7 @@ export class SynonymService {
     async getById(id: string): Promise<Synonym> {
         const synonym = await this.synonymRepository.findOne({where: {id}, relations: ['word']});
         if (!synonym) {
-            throw new NotFoundException(`Nguồn gốc với ID "${id}" không tìm thấy.`);
+            throw new NotFoundException(`Từ đồng nghĩa với ID "${id}" không tìm thấy.`);
         }
         return synonym;
     }
