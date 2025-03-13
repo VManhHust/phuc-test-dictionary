@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from 'typeorm';
+import {Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, ManyToOne} from 'typeorm';
 import { PostEntity } from './post.entity';
+import {Role} from "./role.entity";
 
 @Entity()
 export class User {
@@ -18,8 +19,8 @@ export class User {
   @Column({ default: true })
   enabled: boolean;
 
-  @Column()
-  roles: string;
+  @ManyToOne(() => Role, (role) => role.users, { onDelete: 'SET NULL' })
+  role: Role;
 
   @CreateDateColumn()
   created_at: Date;
