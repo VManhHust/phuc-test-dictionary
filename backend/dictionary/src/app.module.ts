@@ -21,6 +21,9 @@ import {DefinitionModule} from './module/definition.module';
 import {PostModule} from './module/post.module';
 import {CommentModule} from "./module/comment.module";
 import {ReplyModule} from "./module/reply.module";
+import {Role} from "./entity/role.entity";
+import {Permission} from "./entity/permission.entity";
+import {Function} from "./entity/function.entity";
 
 @Module({
     imports: [
@@ -37,13 +40,14 @@ import {ReplyModule} from "./module/reply.module";
                 database: configService.get<string>('DB_NAME'),
                 schema: configService.get<string>('DB_SCHEMA'),
                 autoLoadEntities: true,
-                synchronize: process.env.NODE_ENV !== 'production', // Chỉ bật trong môi trường dev
+                // synchronize: process.env.NODE_ENV !== 'production', // Chỉ bật trong môi trường dev
+                synchronize: true,
                 extra: {
                     options: '-c timezone=Asia/Ho_Chi_Minh',
                 },
             }),
         }),
-        TypeOrmModule.forFeature([User, Word, Definition, Etymology, Synonym, Statistic, Comment, PostEntity, Reply, SearchLog]),
+        TypeOrmModule.forFeature([User, Word, Definition, Etymology, Synonym, Statistic, Comment, PostEntity, Reply, SearchLog, Role, Permission, Function]),
         WordModule,
         SynonymModule,
         EtymologyModule,
