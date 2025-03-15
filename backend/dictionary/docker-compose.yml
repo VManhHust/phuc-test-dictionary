@@ -4,10 +4,10 @@ services:
     container_name: my_postgres
     restart: always
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: 123456789
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgresql
       POSTGRES_DB: vietnamese_dictionary
-      POSTGRES_SCHEMA: dictionary
+      POSTGRES_SCHEMA: vietnamese_dictionary
     ports:
       - "5432:5432"
     volumes:
