@@ -1,7 +1,7 @@
 import {Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Word} from '../entity/word.entity';
-import {ILike, Repository} from 'typeorm';
+import {FindManyOptions, ILike, Repository} from 'typeorm';
 import {CreateWordDto} from "../dto/create-word.dto";
 import {UpdateWordDto} from "../dto/update-word.dto";
 import {PaginationService} from "./pagination/pagination.service";
@@ -59,5 +59,16 @@ export class WordService {
     async getAllWords(query: { skip?: number; take?: number }) {
         return await this.paginationService.paginate(this.wordRepository, query);
     }
+
+    async search(word: string, skip?: number, take?: number): Promise<any> {
+        console.log("Received word:", word);
+
+        return this.paginationService.paginate(this.wordRepository, {
+            skip,
+            take,
+            where: word ? { word: ILike(`%${word}%`) } : {},
+        });
+    }
+
 
 }

@@ -28,7 +28,7 @@ export default function DictionaryPage() {
         setWordData(null)
 
         try {
-            const data = await apiRequest<WordData>("words/find-word", "GET", undefined, { word: searchTerm })
+            const data = await apiRequest<WordData>("words/find-word", "GET", undefined, {word: searchTerm})
             if (data) {
                 setWordData(data)
             } else {

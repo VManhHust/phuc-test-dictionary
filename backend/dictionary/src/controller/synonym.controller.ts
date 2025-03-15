@@ -4,7 +4,7 @@ import { Synonym } from '../entity/synonym.entity';
 import {UpdateSynonymDto} from "../dto/update-synonym.dto";
 import {CreateSynonymDto} from "../dto/create-synonym.dto";
 
-@Controller('synonym')
+@Controller('synonyms')
 export class SynonymController {
   constructor(private readonly synonymService: SynonymService) {
   }

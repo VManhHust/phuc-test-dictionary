@@ -13,8 +13,8 @@ import {
     DialogDescription,
     DialogFooter,
 } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PlusCircle, Search, Edit, Trash2, AlertTriangle, ArrowRight } from "lucide-react"
+import SearchableSelect from "@/components/ui/searchable-select"
 
 // Định nghĩa kiểu dữ liệu
 type Synonym = {
@@ -417,35 +417,28 @@ export default function SynonymsManagement() {
                             <label htmlFor="word" className="text-sm font-medium">
                                 Từ <span className="text-red-500">*</span>
                             </label>
-                            <Select value={selectedWordId} onValueChange={setSelectedWordId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Chọn từ..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {words.map((word) => (
-                                        <SelectItem key={word.id} value={word.id}>
-                                            {word.word}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                value={selectedWordId}
+                                onValueChange={setSelectedWordId}
+                                placeholder="Chọn từ..."
+                                searchPlaceholder="Tìm kiếm từ..."
+                                endpoint="words/search"
+                                className="w-full"
+                            />
                         </div>
+
                         <div className="space-y-2">
                             <label htmlFor="synonym-word" className="text-sm font-medium">
                                 Từ đồng nghĩa <span className="text-red-500">*</span>
                             </label>
-                            <Select value={selectedSynonymWordId} onValueChange={setSelectedSynonymWordId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Chọn từ đồng nghĩa..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {words.map((word) => (
-                                        <SelectItem key={word.id} value={word.id}>
-                                            {word.word}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                value={selectedSynonymWordId}
+                                onValueChange={setSelectedSynonymWordId}
+                                placeholder="Chọn từ đồng nghĩa..."
+                                searchPlaceholder="Tìm kiếm từ đồng nghĩa..."
+                                endpoint="words/search"
+                                className="w-full"
+                            />
                         </div>
                     </div>
                     <DialogFooter>
@@ -484,35 +477,27 @@ export default function SynonymsManagement() {
                             <label htmlFor="edit-word" className="text-sm font-medium">
                                 Từ <span className="text-red-500">*</span>
                             </label>
-                            <Select value={selectedWordId} onValueChange={setSelectedWordId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Chọn từ..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {words.map((word) => (
-                                        <SelectItem key={word.id} value={word.id}>
-                                            {word.word}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                value={selectedWordId}
+                                onValueChange={setSelectedWordId}
+                                placeholder="Chọn từ..."
+                                searchPlaceholder="Tìm kiếm từ..."
+                                endpoint="words/search"
+                                className="w-full"
+                            />
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="edit-synonym-word" className="text-sm font-medium">
                                 Từ đồng nghĩa <span className="text-red-500">*</span>
                             </label>
-                            <Select value={selectedSynonymWordId} onValueChange={setSelectedSynonymWordId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Chọn từ đồng nghĩa..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {words.map((word) => (
-                                        <SelectItem key={word.id} value={word.id}>
-                                            {word.word}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                value={selectedSynonymWordId}
+                                onValueChange={setSelectedSynonymWordId}
+                                placeholder="Chọn từ đồng nghĩa..."
+                                searchPlaceholder="Tìm kiếm từ đồng nghĩa..."
+                                endpoint="words/search"
+                                className="w-full"
+                            />
                         </div>
                     </div>
                     <DialogFooter>

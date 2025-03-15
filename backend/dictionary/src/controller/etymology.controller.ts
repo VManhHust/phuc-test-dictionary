@@ -4,19 +4,19 @@ import {Etymology} from '../entity/etymology.entity';
 import {CreateEtymologyDto} from "../dto/create-etymology.dto";
 import {UpdateEtymologyDto} from "../dto/update-etymology.dto";
 
-@Controller('etymology')
+@Controller('etymologys')
 export class EtymologyController {
     constructor(private readonly etymologyService: EtymologyService) {
     }
 
-    @Get('/find-etymology')
+    @Get()
     async findEtymology(
-        @Query('skip') skip?: number,
-        @Query('take') take?: number,
+        @Query('page') skip?: number,
+        @Query('size') take?: number,
         @Query('word') word?: string
     ){
         if (!word) {
-            throw new NotFoundException('Bạn cần nhập một từ để tìm nguyên học của nó.');
+            return await this.etymologyService.getAllEtymologies({ skip: Number(skip), take: Number(take) });
         }
         return await this.etymologyService.search(word, Number(skip), Number(take));
     }

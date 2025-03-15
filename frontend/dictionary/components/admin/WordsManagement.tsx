@@ -15,7 +15,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 import { PlusCircle, Search, Edit, Trash2, AlertTriangle } from "lucide-react"
-import {apiRequest} from "@/utils/api";
+import { apiRequest } from "@/utils/api"
 
 // Định nghĩa kiểu dữ liệu
 type Word = {
@@ -28,7 +28,13 @@ type Word = {
     synonym_count: number
     etymology_count: number
 }
-
+type WordResponse = {
+    data: Word[];
+    total: number;
+    total_pages: number;
+    current_page: number;
+    limit: number;
+}
 export default function WordsManagement() {
     const [words, setWords] = useState<Word[]>([])
     const [loading, setLoading] = useState(true)
@@ -44,6 +50,7 @@ export default function WordsManagement() {
     const [newPronunciation, setNewPronunciation] = useState("")
     const [formError, setFormError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
+    const [selectedWordId, setSelectedWordId] = useState("")
 
     // Fetch words on component mount
     useEffect(() => {
@@ -52,88 +59,40 @@ export default function WordsManagement() {
 
     // Gọi API để lấy danh sách từ
     const fetchWords = async () => {
-        setLoading(true)
+        setLoading(true);
         try {
-            // Make a real API call to fetch words
-            const data = await apiRequest<Word[] | Word>("words/list", "GET")
+            const searchParam = searchTerm.trim() || undefined;
+            const data = await apiRequest<WordResponse[] | WordResponse>("words", "GET", undefined, {
+                word: searchParam || ""
+            });
 
-            if (Array.isArray(data)) {
-                // If data is an array, use it directly
-                setWords(data)
-            } else if (data && typeof data === "object") {
-                // If data is a single word object, wrap it in an array
-                setWords([data])
+            if (data && 'data' in data) {
+                const wordsData = data?.data?.map((word: any) => ({
+                    id: word.id,
+                    word: word.word,
+                    pronunciation: word.pronunciation,
+                    created_at: word.created_at,
+                    updated_at: word.updated_at,
+                    definition_count: word.definition_count,
+                    synonym_count: word.synonym_count,
+                    etymology_count: word.etymology_count
+                }));
+                setWords(wordsData);
             } else {
-                // Handle empty or invalid response
-                setWords([])
+                setWords([]);
             }
 
-            setError(null)
+            setError(null);
         } catch (err) {
-            console.error("Error fetching words:", err)
-            setError("Không thể tải danh sách từ. Vui lòng thử lại sau.")
-
-            // Fallback to mock data if API fails
-            const mockData: Word[] = [
-                {
-                    id: "1",
-                    word: "học",
-                    pronunciation: "/hɔk̚˧˧/",
-                    created_at: "2023-01-01T00:00:00Z",
-                    updated_at: "2023-01-01T00:00:00Z",
-                    definition_count: 3,
-                    synonym_count: 5,
-                    etymology_count: 1,
-                },
-                {
-                    id: "2",
-                    word: "trường",
-                    pronunciation: "/ʈɨəŋ˧˧/",
-                    created_at: "2023-01-02T00:00:00Z",
-                    updated_at: "2023-01-02T00:00:00Z",
-                    definition_count: 2,
-                    synonym_count: 4,
-                    etymology_count: 1,
-                },
-                {
-                    id: "3",
-                    word: "sách",
-                    pronunciation: "/saːk̚˧˥/",
-                    created_at: "2023-01-03T00:00:00Z",
-                    updated_at: "2023-01-03T00:00:00Z",
-                    definition_count: 1,
-                    synonym_count: 3,
-                    etymology_count: 0,
-                },
-                {
-                    id: "4",
-                    word: "giáo viên",
-                    pronunciation: "/zaːw˧˧ viən˧˧/",
-                    created_at: "2023-01-04T00:00:00Z",
-                    updated_at: "2023-01-04T00:00:00Z",
-                    definition_count: 1,
-                    synonym_count: 2,
-                    etymology_count: 0,
-                },
-                {
-                    id: "5",
-                    word: "học sinh",
-                    pronunciation: "/hɔk̚˧˧ siŋ˧˧/",
-                    created_at: "2023-01-05T00:00:00Z",
-                    updated_at: "2023-01-05T00:00:00Z",
-                    definition_count: 1,
-                    synonym_count: 2,
-                    etymology_count: 0,
-                },
-            ]
-            setWords(mockData)
+            console.error("Error fetching words:", err);
+            setError("Không thể tải danh sách từ. Vui lòng thử lại sau.");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     // Lọc từ theo từ khóa tìm kiếm
-    const filteredWords = words.filter((word) => word.word.toLowerCase().includes(searchTerm.toLowerCase()))
+    const filteredWords = words;
 
     // Xử lý thêm từ mới
     const handleAddWord = async () => {
@@ -144,31 +103,17 @@ export default function WordsManagement() {
 
         setSaving(true)
         try {
-            // Make a real API call to add a new word
-            // const response = await fetch("http://localhost:3001/words", {
-            //   method: "POST",
-            //   headers: {
-            //     "Content-Type": "application/json",
-            //   },
-            //   body: JSON.stringify({
-            //     word: newWord,
-            //     pronunciation: newPronunciation || "",
-            //   }),
-            // })
-
-            // if (!response.ok) {
-            //   throw new Error(`Error: ${response.status} ${response.statusText}`)
-            // }
-
-            // const newWordData = await response.json()
             const newWordData = await apiRequest<Word>("words/create", "POST", {
                 word: newWord,
                 pronunciation: newPronunciation || "",
             })
 
+            // Check if newWordData is null before using it
+            if (!newWordData) {
+                throw new Error("Failed to create new word")
+            }
+
             // Add the new word to the state
-            // @ts-ignore
-            // @ts-ignore
             const newWordObj: Word = {
                 id: newWordData.id,
                 word: newWordData.word,
@@ -210,20 +155,11 @@ export default function WordsManagement() {
                 pronunciation: newPronunciation,
             })
 
-            // Mock sửa từ
-            // const updatedWords = words.map((word) => {
-            //   if (word.id === selectedWord.id) {
-            //     return {
-            //       ...word,
-            //       word: newWord,
-            //       pronunciation: newPronunciation,
-            //       updated_at: new Date().toISOString(),
-            //     }
-            //   }
-            //   return word
-            // })
+            if (response === null) {
+                throw new Error("Failed to update word")
+            }
 
-            // setWords(updatedWords)
+            // Refresh the word list
             fetchWords()
 
             // Reset form
@@ -248,11 +184,12 @@ export default function WordsManagement() {
             // Thực hiện API call để xóa từ
             const response = await apiRequest(`words/delete/${selectedWord.id}`, "DELETE")
 
-            // Mock xóa từ
-            // const updatedWords = words.filter((word) => word.id !== selectedWord.id)
-            // setWords(updatedWords)
-            fetchWords()
+            if (response === null) {
+                throw new Error("Failed to delete word")
+            }
 
+            // Refresh the word list
+            fetchWords()
             setIsDeleteDialogOpen(false)
         } catch (err) {
             console.error("Error deleting word:", err)

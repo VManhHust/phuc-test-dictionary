@@ -17,6 +17,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Search, Edit, Trash2, AlertTriangle } from "lucide-react"
+import SearchableSelect from "@/components/ui/searchable-select"
 
 // Định nghĩa kiểu dữ liệu
 type Definition = {
@@ -436,18 +437,14 @@ export default function DefinitionsManagement() {
                                 <label htmlFor="word" className="text-sm font-medium">
                                     Từ <span className="text-red-500">*</span>
                                 </label>
-                                <Select value={selectedWordId} onValueChange={setSelectedWordId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Chọn từ..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {words.map((word) => (
-                                            <SelectItem key={word.id} value={word.id}>
-                                                {word.word}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <SearchableSelect
+                                    value={selectedWordId}
+                                    onValueChange={setSelectedWordId}
+                                    placeholder="Chọn từ..."
+                                    searchPlaceholder="Tìm kiếm từ..."
+                                    endpoint="words/search"
+                                    className="w-full"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="dictionary" className="text-sm font-medium">
@@ -528,18 +525,14 @@ export default function DefinitionsManagement() {
                                 <label htmlFor="edit-word" className="text-sm font-medium">
                                     Từ <span className="text-red-500">*</span>
                                 </label>
-                                <Select value={selectedWordId} onValueChange={setSelectedWordId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Chọn từ..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {words.map((word) => (
-                                            <SelectItem key={word.id} value={word.id}>
-                                                {word.word}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <SearchableSelect
+                                    value={selectedWordId}
+                                    onValueChange={setSelectedWordId}
+                                    placeholder="Chọn từ..."
+                                    searchPlaceholder="Tìm kiếm từ..."
+                                    endpoint="words/search"
+                                    className="w-full"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="edit-dictionary" className="text-sm font-medium">

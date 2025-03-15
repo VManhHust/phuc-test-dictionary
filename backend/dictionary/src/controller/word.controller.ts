@@ -29,11 +29,12 @@ export class WordController {
   async remove(@Param('id') id: string) {
     return this.wordService.remove(id);
   }
-  @Get('/all-words')
-  async getAllWords(
-      @Query('skip') skip?: number,
-      @Query('take') take?: number,
+  @Get()
+  async search(
+      @Query('word') word: string,
+      @Query('page') skip?: number,
+      @Query('size') take?: number,
   ) {
-    return await this.wordService.getAllWords({ skip: Number(skip), take: Number(take) });
+    return await this.wordService.search(word, Number(skip), Number(take));
   }
 }
