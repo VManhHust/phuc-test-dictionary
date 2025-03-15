@@ -10,11 +10,15 @@ export class EtymologyController {
     }
 
     @Get('/find-etymology')
-    async findEtymology(@Query('word') word: string): Promise<Etymology[]> {
+    async findEtymology(
+        @Query('skip') skip?: number,
+        @Query('take') take?: number,
+        @Query('word') word?: string
+    ){
         if (!word) {
             throw new NotFoundException('Bạn cần nhập một từ để tìm nguyên học của nó.');
         }
-        return this.etymologyService.findEtymology(word);
+        return await this.etymologyService.search(word, Number(skip), Number(take));
     }
 
     @Post()

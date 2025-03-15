@@ -5,6 +5,7 @@ import {Synonym} from '../entity/synonym.entity';
 import {Word} from '../entity/word.entity';
 import {CreateSynonymDto} from "../dto/create-synonym.dto";
 import {UpdateSynonymDto} from "../dto/update-synonym.dto";
+import {PaginationService} from "./pagination/pagination.service";
 
 @Injectable()
 export class SynonymService {
@@ -13,10 +14,11 @@ export class SynonymService {
         private readonly synonymRepository: Repository<Synonym>,
         @InjectRepository(Word)
         private readonly wordRepository: Repository<Word>,
+        private readonly paginationService: PaginationService
     ) {
     }
 
-    async findSynonym(word: string): Promise<Synonym[]> {
+    async search(word: string, skip?: number, take?: number): Promise<any> {
         const wordEntity = await this.wordRepository.findOne({
             where: {word: ILike(word)},
         });
@@ -25,12 +27,11 @@ export class SynonymService {
             throw new NotFoundException(`Từ "${word}" không có trong từ điển.`);
         }
 
-        const synonyms = await this.synonymRepository
-            .createQueryBuilder('synonym')
-            .innerJoinAndSelect('synonym.word', 'word')
-            .where('word.id = :wordId', {wordId: wordEntity.id})
-            .getMany();
-        return synonyms;
+        return await this.paginationService.paginate(
+            this.synonymRepository,
+            { skip, take },
+            ['word']
+        );
     }
 
     async create(createSynonymDto: CreateSynonymDto): Promise<Synonym> {

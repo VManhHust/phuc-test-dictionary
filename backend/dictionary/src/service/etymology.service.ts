@@ -5,6 +5,7 @@ import {Etymology} from '../entity/etymology.entity';
 import {Word} from '../entity/word.entity';
 import {CreateEtymologyDto} from "../dto/create-etymology.dto";
 import {UpdateEtymologyDto} from "../dto/update-etymology.dto";
+import {PaginationService} from "./pagination/pagination.service";
 
 @Injectable()
 export class EtymologyService {
@@ -13,10 +14,11 @@ export class EtymologyService {
         private readonly etymologyRepository: Repository<Etymology>,
         @InjectRepository(Word)
         private readonly wordRepository: Repository<Word>,
+        private readonly paginationService: PaginationService
     ) {
     }
 
-    async findEtymology(word: string): Promise<Etymology[]> {
+    async search(word: string, skip?: number, take?: number): Promise<any> {
         const wordEntity = await this.wordRepository.findOne({
             where: {word: ILike(word)},
         });
@@ -24,12 +26,12 @@ export class EtymologyService {
         if (!wordEntity) {
             throw new NotFoundException(`Từ "${word}" không có trong từ điển.`);
         }
-        const etymologies = await this.etymologyRepository
-            .createQueryBuilder('etymology')
-            .innerJoinAndSelect('etymology.word', 'word')
-            .where('word.id = :wordId', {wordId: wordEntity.id})
-            .getMany();
-        return etymologies;
+
+        return await this.paginationService.paginate(
+            this.etymologyRepository,
+            { skip, take },
+            ['word']
+        );
     }
 
     async create(createEtymologyDto: CreateEtymologyDto): Promise<Etymology> {

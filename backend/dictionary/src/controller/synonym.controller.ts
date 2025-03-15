@@ -10,12 +10,15 @@ export class SynonymController {
   }
 
   @Get('/find-synonym')
-  async findSynonym(@Query('word') word: string): Promise<Synonym[]> {
+  async findSynonym(
+      @Query('skip') skip?: number,
+      @Query('take') take?: number,
+      @Query('word') word?: string
+  ){
     if (!word) {
       throw new NotFoundException('Bạn cần nhập một từ để tìm đồng nghĩa.');
     }
-
-    return this.synonymService.findSynonym(word);
+    return await this.synonymService.search(word, Number(skip), Number(take));
   }
 
   @Post()
