@@ -5,6 +5,7 @@ import {ILike, Repository} from 'typeorm';
 import {Word} from '../entity/word.entity';
 import {UpdateDefinitionDto} from "../dto/update-definition.dto";
 import {CreateDefinitionDto} from "../dto/create-definition.dto";
+import {PaginationService} from "./pagination/pagination.service";
 
 @Injectable()
 export class DefinitionService {
@@ -13,10 +14,11 @@ export class DefinitionService {
         private readonly definitionRepository: Repository<Definition>,
         @InjectRepository(Word)
         private readonly wordRepository: Repository<Word>,
+        private readonly paginationService: PaginationService
     ) {
     }
 
-    async findDefinition(word: string): Promise<Definition[]> {
+    async search(word: string, skip?: number, take?: number): Promise<any> {
         const wordEntity = await this.wordRepository.findOne({
             where: {word: ILike(word)},
         });
@@ -25,12 +27,11 @@ export class DefinitionService {
             throw new NotFoundException(`Từ "${word}" không có trong từ điển.`);
         }
 
-        const definitions = await this.definitionRepository
-            .createQueryBuilder('definition')
-            .innerJoinAndSelect('definition.word', 'word')
-            .where('word.id = :wordId', {wordId: wordEntity.id})
-            .getMany();
-        return definitions;
+        return await this.paginationService.paginate(
+            this.definitionRepository,
+            { skip, take },
+            ['word']
+        );
     }
 
     // Tạo mới định nghĩa

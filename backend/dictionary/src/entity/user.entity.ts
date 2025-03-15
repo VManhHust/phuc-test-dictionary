@@ -1,7 +1,10 @@
 import {Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, ManyToOne} from 'typeorm';
 import { PostEntity } from './post.entity';
 import {Role} from "./role.entity";
-
+export enum UserRole {
+  ADMIN = 'admin',
+  USER = 'user',
+}
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -19,8 +22,12 @@ export class User {
   @Column({ default: true })
   enabled: boolean;
 
-  @ManyToOne(() => Role, (role) => role.users, { onDelete: 'SET NULL' })
-  role: Role;
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
 
   @CreateDateColumn()
   created_at: Date;

@@ -24,6 +24,7 @@ import {ReplyModule} from "./module/reply.module";
 import {Role} from "./entity/role.entity";
 import {Permission} from "./entity/permission.entity";
 import {Function} from "./entity/function.entity";
+import {UserModule} from "./module/user.module";
 
 @Module({
     imports: [
@@ -54,7 +55,8 @@ import {Function} from "./entity/function.entity";
         DefinitionModule,
         PostModule,
         CommentModule,
-        ReplyModule
+        ReplyModule,
+        UserModule
     ],
     controllers: [AppController],
     providers: [AppService],
