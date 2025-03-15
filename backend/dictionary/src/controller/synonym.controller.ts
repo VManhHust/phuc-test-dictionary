@@ -40,4 +40,11 @@ export class SynonymController {
   async deleteSynonym(@Param('id') id: string): Promise<void> {
     return this.synonymService.delete(id);
   }
+  @Get('/all-synonyms')
+  async getAllSynonyms(
+      @Query('skip') skip?: number,
+      @Query('take') take?: number,
+  ) {
+    return await this.synonymService.getAllSynonyms({ skip: Number(skip), take: Number(take) });
+  }
 }

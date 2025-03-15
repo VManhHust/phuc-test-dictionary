@@ -69,4 +69,7 @@ export class SynonymService {
         const synonym = await this.getById(id);
         await this.synonymRepository.remove(synonym);
     }
+    async getAllSynonyms(query: { skip?: number; take?: number }) {
+        return await this.paginationService.paginate(this.synonymRepository, query);
+    }
 }

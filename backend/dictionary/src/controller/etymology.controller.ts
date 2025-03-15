@@ -40,4 +40,11 @@ export class EtymologyController {
     async deleteEtymology(@Param('id') id: string): Promise<void> {
         return this.etymologyService.delete(id);
     }
+    @Get('/all-etymologies')
+    async getAllEtymologies(
+        @Query('skip') skip?: number,
+        @Query('take') take?: number,
+    ) {
+        return await this.etymologyService.getAllEtymologies({ skip: Number(skip), take: Number(take) });
+    }
 }

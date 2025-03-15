@@ -73,4 +73,7 @@ export class DefinitionService {
         const definition = await this.getById(id);
         await this.definitionRepository.remove(definition);
     }
+    async getAllDefinitions(query: { skip?: number; take?: number }) {
+        return await this.paginationService.paginate(this.definitionRepository, query);
+    }
 }

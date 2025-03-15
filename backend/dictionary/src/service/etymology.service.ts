@@ -69,4 +69,7 @@ export class EtymologyService {
         const etymology = await this.getById(id);
         await this.etymologyRepository.remove(etymology);
     }
+    async getAllEtymologies(query: { skip?: number; take?: number }) {
+        return await this.paginationService.paginate(this.etymologyRepository, query);
+    }
 }

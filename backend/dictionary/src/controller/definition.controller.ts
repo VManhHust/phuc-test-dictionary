@@ -40,4 +40,11 @@ export class DefinitionController {
     async deleteDefinition(@Param('id') id: string): Promise<void> {
         return this.definitionService.delete(id);
     }
+    @Get('/all-definitions')
+    async getAllDefinitions(
+        @Query('skip') skip?: number,
+        @Query('take') take?: number,
+    ) {
+        return await this.definitionService.getAllDefinitions({ skip: Number(skip), take: Number(take) });
+    }
 }
