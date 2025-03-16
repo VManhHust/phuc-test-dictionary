@@ -4,7 +4,7 @@ import {Etymology} from '../entity/etymology.entity';
 import {CreateEtymologyDto} from "../dto/create-etymology.dto";
 import {UpdateEtymologyDto} from "../dto/update-etymology.dto";
 
-@Controller('etymologys')
+@Controller('etymologies')
 export class EtymologyController {
     constructor(private readonly etymologyService: EtymologyService) {
     }
@@ -15,9 +15,6 @@ export class EtymologyController {
         @Query('size') take?: number,
         @Query('word') word?: string
     ){
-        if (!word) {
-            return await this.etymologyService.getAllEtymologies({ skip: Number(skip), take: Number(take) });
-        }
         return await this.etymologyService.search(word, Number(skip), Number(take));
     }
 

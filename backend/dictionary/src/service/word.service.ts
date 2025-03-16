@@ -1,7 +1,7 @@
 import {Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Word} from '../entity/word.entity';
-import {FindManyOptions, ILike, Repository} from 'typeorm';
+import {ILike, Repository} from 'typeorm';
 import {CreateWordDto} from "../dto/create-word.dto";
 import {UpdateWordDto} from "../dto/update-word.dto";
 import {PaginationService} from "./pagination/pagination.service";
@@ -103,8 +103,7 @@ export class WordService {
             skip,
             take,
             where: word ? { word: ILike(`%${word}%`) } : {},
+            order: { updated_at: 'DESC' },
         });
     }
-
-
 }

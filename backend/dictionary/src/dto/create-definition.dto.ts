@@ -5,7 +5,6 @@ export class CreateDefinitionDto {
     @IsString()
     wordId: string;
 
-    @IsString()
     dictionary_name: string;
 
     @IsString()

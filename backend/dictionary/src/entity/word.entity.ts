@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn} from 'typeorm';
 import { Definition } from './definition.entity';
 import { Etymology } from './etymology.entity';
 import { Synonym } from './synonym.entity';

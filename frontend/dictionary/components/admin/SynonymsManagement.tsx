@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Card } from "@/components/ui/card"
 import {
     Dialog,
     DialogContent,
@@ -13,398 +11,393 @@ import {
     DialogDescription,
     DialogFooter,
 } from "@/components/ui/dialog"
-import { PlusCircle, Search, Edit, Trash2, AlertTriangle, ArrowRight } from "lucide-react"
-import SearchableSelect from "@/components/ui/searchable-select"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { PlusCircle, Edit, Trash2, AlertTriangle, ArrowRight, Loader2, Filter } from "lucide-react"
+import WordSearchBar from "./WordSearchBar"
 
-// Định nghĩa kiểu dữ liệu
+// Types
+type Word = {
+    id: string
+    word: string
+    pronunciation?: string
+}
+
 type Synonym = {
     id: string
-    word_id: string
-    word: string
-    synonym_word_id: string
+    word: Word
     synonym_word: string
     created_at: string
     updated_at: string
 }
 
-type Word = {
-    id: string
-    word: string
+type SynonymsResponse = {
+    data: Synonym[]
+    total: number
+    total_pages: number
+    current_page: number
+    limit: number
 }
 
 export default function SynonymsManagement() {
+    // State for selected word and synonyms
+    const [selectedWord, setSelectedWord] = useState<Word | null>(null)
     const [synonyms, setSynonyms] = useState<Synonym[]>([])
-    const [words, setWords] = useState<Word[]>([])
+
+    // State for loading and pagination
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [searchTerm, setSearchTerm] = useState("")
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
+    const [pageSize, setPageSize] = useState(5)
+    const [total, setTotal] = useState(0)
+
+    // State for dialogs
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [selectedSynonym, setSelectedSynonym] = useState<Synonym | null>(null)
 
     // Form state
-    const [selectedWordId, setSelectedWordId] = useState("")
-    const [selectedSynonymWordId, setSelectedSynonymWordId] = useState("")
+    const [newSynonymWord, setNewSynonymWord] = useState("")
     const [formError, setFormError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
 
-    // Fetch data on component mount
+    // Fetch synonyms on initial load and when page or page size changes
     useEffect(() => {
-        fetchSynonyms()
-        fetchWords()
-    }, [])
+        fetchSynonyms(currentPage, pageSize)
+    }, [currentPage, pageSize])
 
-    // Gọi API để lấy danh sách từ đồng nghĩa
-    const fetchSynonyms = async () => {
+    // Fetch synonyms when a word is selected
+    useEffect(() => {
+        if (selectedWord !== undefined) {
+            setCurrentPage(1)
+            fetchSynonyms(1, pageSize)
+        }
+    }, [selectedWord, pageSize])
+
+    // Function to fetch synonyms
+    const fetchSynonyms = async (page: number, size: number) => {
         setLoading(true)
         try {
-            // Đây sẽ là API thực tế trong môi trường production
-            // const data = await apiRequest<Synonym[]>("admin/synonyms/list", "GET");
+            const url = new URL("http://localhost:3001/synonyms")
+            url.searchParams.append("page", page.toString())
+            url.searchParams.append("size", size.toString())
 
-            // Mock data cho việc phát triển
-            const mockData: Synonym[] = [
-                {
-                    id: "1",
-                    word_id: "1",
-                    word: "học",
-                    synonym_word_id: "6",
-                    synonym_word: "nghiên cứu",
-                    created_at: "2023-01-01T00:00:00Z",
-                    updated_at: "2023-01-01T00:00:00Z",
-                },
-                {
-                    id: "2",
-                    word_id: "1",
-                    word: "học",
-                    synonym_word_id: "7",
-                    synonym_word: "tiếp thu",
-                    created_at: "2023-01-02T00:00:00Z",
-                    updated_at: "2023-01-02T00:00:00Z",
-                },
-                {
-                    id: "3",
-                    word_id: "2",
-                    word: "trường",
-                    synonym_word_id: "8",
-                    synonym_word: "trường học",
-                    created_at: "2023-01-03T00:00:00Z",
-                    updated_at: "2023-01-03T00:00:00Z",
-                },
-                {
-                    id: "4",
-                    word_id: "3",
-                    word: "sách",
-                    synonym_word_id: "9",
-                    synonym_word: "tài liệu",
-                    created_at: "2023-01-04T00:00:00Z",
-                    updated_at: "2023-01-04T00:00:00Z",
-                },
-            ]
+            if (selectedWord) {
+                url.searchParams.append("word", selectedWord.id)
+            }
 
-            setSynonyms(mockData)
-            setError(null)
-        } catch (err) {
-            console.error("Error fetching synonyms:", err)
-            setError("Không thể tải danh sách từ đồng nghĩa. Vui lòng thử lại sau.")
+            const response = await fetch(url.toString())
+
+            if (!response.ok) {
+                setSynonyms([])
+            }
+
+            const data: SynonymsResponse = await response.json()
+            setSynonyms(data.data)
+            setTotalPages(data.total_pages)
+            setCurrentPage(data.current_page)
+            setTotal(data.total)
+        } catch (error) {
+                setSynonyms([])
         } finally {
             setLoading(false)
         }
     }
 
-    // Gọi API để lấy danh sách từ
-    const fetchWords = async () => {
-        try {
-            // const data = await apiRequest<Word[]>("admin/words/list", "GET");
-            const mockWords: Word[] = [
-                { id: "1", word: "học" },
-                { id: "2", word: "trường" },
-                { id: "3", word: "sách" },
-                { id: "4", word: "giáo viên" },
-                { id: "5", word: "học sinh" },
-                { id: "6", word: "nghiên cứu" },
-                { id: "7", word: "tiếp thu" },
-                { id: "8", word: "trường học" },
-                { id: "9", word: "tài liệu" },
-                { id: "10", word: "giáo trình" },
-            ]
-            setWords(mockWords)
-        } catch (err) {
-            console.error("Error fetching words:", err)
-        }
+    // Handle word selection from search
+    const handleWordSelect = (word: Word) => {
+        setSelectedWord(word)
     }
 
-    // Lọc từ đồng nghĩa theo từ khóa tìm kiếm
-    const filteredSynonyms = synonyms.filter(
-        (syn) =>
-            syn.word.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            syn.synonym_word.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
+    // Clear word filter
+    const clearWordFilter = () => {
+        setSelectedWord(null)
+        setCurrentPage(1)
+        fetchSynonyms(1, pageSize)
+    }
 
-    // Xử lý thêm từ đồng nghĩa mới
+    // Handle adding a new synonym
     const handleAddSynonym = async () => {
-        if (!selectedWordId || !selectedSynonymWordId) {
-            setFormError("Vui lòng chọn từ và từ đồng nghĩa")
-            return
-        }
-
-        if (selectedWordId === selectedSynonymWordId) {
-            setFormError("Từ và từ đồng nghĩa không thể là cùng một từ")
-            return
-        }
-
-        // Kiểm tra nếu cặp từ đồng nghĩa đã tồn tại
-        const exists = synonyms.some(
-            (syn) =>
-                (syn.word_id === selectedWordId && syn.synonym_word_id === selectedSynonymWordId) ||
-                (syn.word_id === selectedSynonymWordId && syn.synonym_word_id === selectedWordId),
-        )
-
-        if (exists) {
-            setFormError("Cặp từ đồng nghĩa này đã tồn tại")
+        if (!selectedWord || !newSynonymWord.trim()) {
+            setFormError("Vui lòng nhập từ đồng nghĩa")
             return
         }
 
         setSaving(true)
         try {
-            // Trong thực tế, sẽ gọi API để thêm từ đồng nghĩa
-            // const response = await apiRequest("admin/synonyms/add", "POST", {
-            //   word_id: selectedWordId,
-            //   synonym_word_id: selectedSynonymWordId
-            // });
+            const response = await fetch("http://localhost:3001/synonyms", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    word_id: selectedWord.id,
+                    synonym_word: newSynonymWord,
+                }),
+            })
 
-            // Mock thêm từ đồng nghĩa
-            const selectedWord = words.find((w) => w.id === selectedWordId)
-            const selectedSynonymWord = words.find((w) => w.id === selectedSynonymWordId)
-
-            if (!selectedWord || !selectedSynonymWord) {
-                throw new Error("Từ hoặc từ đồng nghĩa không tồn tại")
+            if (!response.ok) {
+                throw new Error(`Error: ${response.status}`)
             }
 
-            const newSynonym: Synonym = {
-                id: (synonyms.length + 1).toString(),
-                word_id: selectedWordId,
-                word: selectedWord.word,
-                synonym_word_id: selectedSynonymWordId,
-                synonym_word: selectedSynonymWord.word,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            }
-
-            setSynonyms([...synonyms, newSynonym])
+            // Refresh synonyms list
+            fetchSynonyms(currentPage, pageSize)
 
             // Reset form
-            setSelectedWordId("")
-            setSelectedSynonymWordId("")
+            setNewSynonymWord("")
             setFormError(null)
             setIsAddDialogOpen(false)
-        } catch (err) {
-            console.error("Error adding synonym:", err)
-            setFormError("Không thể thêm từ đồng nghĩa mới. Vui lòng thử lại sau.")
+        } catch (error) {
+            console.error("Error adding synonym:", error)
+            setFormError("Không thể thêm từ đồng nghĩa. Vui lòng thử lại sau.")
         } finally {
             setSaving(false)
         }
     }
 
-    // Xử lý chỉnh sửa từ đồng nghĩa
+    // Handle editing a synonym
     const handleEditSynonym = async () => {
-        if (!selectedSynonym || !selectedWordId || !selectedSynonymWordId) {
-            setFormError("Vui lòng chọn từ và từ đồng nghĩa")
-            return
-        }
-
-        if (selectedWordId === selectedSynonymWordId) {
-            setFormError("Từ và từ đồng nghĩa không thể là cùng một từ")
-            return
-        }
-
-        // Kiểm tra nếu cặp từ đồng nghĩa đã tồn tại (ngoại trừ bản ghi hiện tại)
-        const exists = synonyms.some(
-            (syn) =>
-                syn.id !== selectedSynonym.id &&
-                ((syn.word_id === selectedWordId && syn.synonym_word_id === selectedSynonymWordId) ||
-                    (syn.word_id === selectedSynonymWordId && syn.synonym_word_id === selectedWordId)),
-        )
-
-        if (exists) {
-            setFormError("Cặp từ đồng nghĩa này đã tồn tại")
+        if (!selectedSynonym || !newSynonymWord.trim()) {
+            setFormError("Vui lòng nhập từ đồng nghĩa")
             return
         }
 
         setSaving(true)
         try {
-            // Trong thực tế, sẽ gọi API để cập nhật từ đồng nghĩa
-            // const response = await apiRequest(`admin/synonyms/update/${selectedSynonym.id}`, "PUT", {
-            //   word_id: selectedWordId,
-            //   synonym_word_id: selectedSynonymWordId
-            // });
-
-            // Mock cập nhật từ đồng nghĩa
-            const selectedWord = words.find((w) => w.id === selectedWordId)
-            const selectedSynonymWord = words.find((w) => w.id === selectedSynonymWordId)
-
-            if (!selectedWord || !selectedSynonymWord) {
-                throw new Error("Từ hoặc từ đồng nghĩa không tồn tại")
-            }
-
-            const updatedSynonyms = synonyms.map((syn) => {
-                if (syn.id === selectedSynonym.id) {
-                    return {
-                        ...syn,
-                        word_id: selectedWordId,
-                        word: selectedWord.word,
-                        synonym_word_id: selectedSynonymWordId,
-                        synonym_word: selectedSynonymWord.word,
-                        updated_at: new Date().toISOString(),
-                    }
-                }
-                return syn
+            const response = await fetch(`http://localhost:3001/synonyms/${selectedSynonym.id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    synonym_word: newSynonymWord,
+                }),
             })
 
-            setSynonyms(updatedSynonyms)
+            if (!response.ok) {
+                throw new Error(`Error: ${response.status}`)
+            }
+
+            // Refresh synonyms list
+            fetchSynonyms(currentPage, pageSize)
 
             // Reset form
-            setSelectedWordId("")
-            setSelectedSynonymWordId("")
+            setNewSynonymWord("")
             setFormError(null)
             setIsEditDialogOpen(false)
-        } catch (err) {
-            console.error("Error updating synonym:", err)
+        } catch (error) {
+            console.error("Error updating synonym:", error)
             setFormError("Không thể cập nhật từ đồng nghĩa. Vui lòng thử lại sau.")
         } finally {
             setSaving(false)
         }
     }
 
-    // Xử lý xóa từ đồng nghĩa
+    // Handle deleting a synonym
     const handleDeleteSynonym = async () => {
         if (!selectedSynonym) return
 
         setSaving(true)
         try {
-            // Trong thực tế, sẽ gọi API để xóa từ đồng nghĩa
-            // const response = await apiRequest(`admin/synonyms/delete/${selectedSynonym.id}`, "DELETE");
+            const response = await fetch(`http://localhost:3001/synonyms/${selectedSynonym.id}`, {
+                method: "DELETE",
+            })
 
-            // Mock xóa từ đồng nghĩa
-            const updatedSynonyms = synonyms.filter((syn) => syn.id !== selectedSynonym.id)
-            setSynonyms(updatedSynonyms)
+            if (!response.ok) {
+                throw new Error(`Error: ${response.status}`)
+            }
 
+            // Refresh synonyms list
+            fetchSynonyms(currentPage, pageSize)
             setIsDeleteDialogOpen(false)
-        } catch (err) {
-            console.error("Error deleting synonym:", err)
+        } catch (error) {
+            console.error("Error deleting synonym:", error)
             alert("Không thể xóa từ đồng nghĩa. Vui lòng thử lại sau.")
         } finally {
             setSaving(false)
         }
     }
 
-    // Mở dialog chỉnh sửa và điền thông tin
+    // Open edit dialog
     const openEditDialog = (synonym: Synonym) => {
         setSelectedSynonym(synonym)
-        setSelectedWordId(synonym.word_id)
-        setSelectedSynonymWordId(synonym.synonym_word_id)
+        setNewSynonymWord(synonym.synonym_word)
         setFormError(null)
         setIsEditDialogOpen(true)
     }
 
-    // Mở dialog xóa
+    // Open delete dialog
     const openDeleteDialog = (synonym: Synonym) => {
         setSelectedSynonym(synonym)
         setIsDeleteDialogOpen(true)
     }
 
+    // Handle page change
+    const handlePageChange = (page: number) => {
+        if (page < 1 || page > totalPages) return
+        setCurrentPage(page)
+    }
+
+    // Handle page size change
+    const handlePageSizeChange = (size: string) => {
+        setPageSize(Number(size))
+        setCurrentPage(1)
+    }
+
+    // @ts-ignore
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold">Quản lý Từ đồng nghĩa</h2>
-                <Button onClick={() => setIsAddDialogOpen(true)} className="bg-blue-600">
+                <Button onClick={() => setIsAddDialogOpen(true)} className="bg-blue-600" disabled={!selectedWord}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Thêm từ đồng nghĩa mới
                 </Button>
             </div>
 
-            {/* Thanh tìm kiếm */}
-            <div className="relative mb-6">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                    type="text"
-                    placeholder="Tìm kiếm từ đồng nghĩa..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-10"
-                />
+            {/* Word search bar */}
+            <div className="mb-6">
+                <div className="flex gap-2 items-center">
+                    <div className="flex-1">
+                        <WordSearchBar onWordSelect={handleWordSelect} placeholder="Tìm kiếm từ để lọc từ đồng nghĩa..." />
+                    </div>
+                    {selectedWord && (
+                        <Button variant="outline" size="sm" onClick={clearWordFilter} className="whitespace-nowrap">
+                            Xóa bộ lọc
+                        </Button>
+                    )}
+                </div>
+
+                {selectedWord && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded-md flex items-center">
+                        <Filter className="h-4 w-4 text-blue-500 mr-2" />
+                        <p className="text-blue-700 font-medium">
+                            Đang lọc từ đồng nghĩa của: <span className="font-bold">{selectedWord.word}</span>
+                            {selectedWord.pronunciation && ` (${selectedWord.pronunciation})`}
+                        </p>
+                    </div>
+                )}
             </div>
 
-            {/* Bảng danh sách từ đồng nghĩa */}
+            {/* Synonyms table */}
             {loading ? (
                 <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                 </div>
-            ) : error ? (
-                <Card className="p-6 text-center text-red-600 bg-red-50">
-                    <p>{error}</p>
-                    <Button variant="outline" className="mt-4" onClick={fetchSynonyms}>
-                        Thử lại
-                    </Button>
-                </Card>
             ) : (
-                <div className="border rounded-md overflow-hidden">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Từ</TableHead>
-                                <TableHead className="text-center">Mối quan hệ</TableHead>
-                                <TableHead>Từ đồng nghĩa</TableHead>
-                                <TableHead className="text-right w-[120px]">Thao tác</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredSynonyms.length > 0 ? (
-                                filteredSynonyms.map((synonym) => (
-                                    <TableRow key={synonym.id}>
-                                        <TableCell className="font-medium">{synonym.word}</TableCell>
-                                        <TableCell className="text-center">
-                                            <ArrowRight className="h-4 w-4 mx-auto" />
-                                        </TableCell>
-                                        <TableCell className="font-medium">{synonym.synonym_word}</TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => openEditDialog(synonym)}
-                                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => openDeleteDialog(synonym)}
-                                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                <>
+                    <div className="border rounded-md overflow-hidden">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Từ</TableHead>
+                                    <TableHead className="text-center">Mối quan hệ</TableHead>
+                                    <TableHead>Từ đồng nghĩa</TableHead>
+                                    <TableHead className="text-right w-[120px]">Thao tác</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {synonyms.length > 0 ? (
+                                    synonyms.map((synonym) => (
+                                        <TableRow key={synonym.id}>
+                                            <TableCell className="font-medium">{synonym.word.word}</TableCell>
+                                            <TableCell className="text-center">
+                                                <ArrowRight className="h-4 w-4 mx-auto" />
+                                            </TableCell>
+                                            <TableCell className="font-medium">{synonym.synonym_word}</TableCell>
+                                            <TableCell className="text-right space-x-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openEditDialog(synonym)}
+                                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openDeleteDialog(synonym)}
+                                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-6 text-gray-500">
+                                            {selectedWord
+                                                ? "Chưa có từ đồng nghĩa nào cho từ này"
+                                                : "Không có từ đồng nghĩa nào trong hệ thống"}
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-6 text-gray-500">
-                                        {searchTerm ? "Không tìm thấy từ đồng nghĩa phù hợp" : "Chưa có từ đồng nghĩa nào trong từ điển"}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 0 && (
+                        <div className="flex justify-between items-center mt-4">
+                            <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">
+                  Hiển thị {synonyms.length} / {total} kết quả
+                </span>
+                                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                                    <SelectTrigger className="w-[100px]">
+                                        <SelectValue placeholder="Số lượng" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="5">5 / trang</SelectItem>
+                                        <SelectItem value="10">10 / trang</SelectItem>
+                                        <SelectItem value="20">20 / trang</SelectItem>
+                                        <SelectItem value="50">50 / trang</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex space-x-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                >
+                                    Trước
+                                </Button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <Button
+                                        key={page}
+                                        variant={currentPage === page ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => handlePageChange(page)}
+                                    >
+                                        {page}
+                                    </Button>
+                                ))}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    Sau
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
 
-            {/* Dialog thêm từ đồng nghĩa mới */}
+            {/* Add synonym dialog */}
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Thêm từ đồng nghĩa mới</DialogTitle>
-                        <DialogDescription>Chọn cặp từ đồng nghĩa để thêm vào từ điển.</DialogDescription>
+                        <DialogDescription>Thêm từ đồng nghĩa cho từ "{selectedWord?.word}"</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         {formError && (
@@ -414,30 +407,14 @@ export default function SynonymsManagement() {
                             </div>
                         )}
                         <div className="space-y-2">
-                            <label htmlFor="word" className="text-sm font-medium">
-                                Từ <span className="text-red-500">*</span>
-                            </label>
-                            <SearchableSelect
-                                value={selectedWordId}
-                                onValueChange={setSelectedWordId}
-                                placeholder="Chọn từ..."
-                                searchPlaceholder="Tìm kiếm từ..."
-                                endpoint="words/search"
-                                className="w-full"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
                             <label htmlFor="synonym-word" className="text-sm font-medium">
                                 Từ đồng nghĩa <span className="text-red-500">*</span>
                             </label>
-                            <SearchableSelect
-                                value={selectedSynonymWordId}
-                                onValueChange={setSelectedSynonymWordId}
-                                placeholder="Chọn từ đồng nghĩa..."
-                                searchPlaceholder="Tìm kiếm từ đồng nghĩa..."
-                                endpoint="words/search"
-                                className="w-full"
+                            <Input
+                                id="synonym-word"
+                                value={newSynonymWord}
+                                onChange={(e) => setNewSynonymWord(e.target.value)}
+                                placeholder="Nhập từ đồng nghĩa"
                             />
                         </div>
                     </div>
@@ -448,7 +425,7 @@ export default function SynonymsManagement() {
                         <Button onClick={handleAddSynonym} className="bg-blue-600" disabled={saving}>
                             {saving ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Đang lưu...
                                 </>
                             ) : (
@@ -459,12 +436,12 @@ export default function SynonymsManagement() {
                 </DialogContent>
             </Dialog>
 
-            {/* Dialog chỉnh sửa từ đồng nghĩa */}
+            {/* Edit synonym dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Chỉnh sửa từ đồng nghĩa</DialogTitle>
-                        <DialogDescription>Chỉnh sửa cặp từ đồng nghĩa.</DialogDescription>
+                        <DialogDescription>Chỉnh sửa từ đồng nghĩa cho từ "{selectedSynonym?.word.word}"</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         {formError && (
@@ -474,29 +451,14 @@ export default function SynonymsManagement() {
                             </div>
                         )}
                         <div className="space-y-2">
-                            <label htmlFor="edit-word" className="text-sm font-medium">
-                                Từ <span className="text-red-500">*</span>
-                            </label>
-                            <SearchableSelect
-                                value={selectedWordId}
-                                onValueChange={setSelectedWordId}
-                                placeholder="Chọn từ..."
-                                searchPlaceholder="Tìm kiếm từ..."
-                                endpoint="words/search"
-                                className="w-full"
-                            />
-                        </div>
-                        <div className="space-y-2">
                             <label htmlFor="edit-synonym-word" className="text-sm font-medium">
                                 Từ đồng nghĩa <span className="text-red-500">*</span>
                             </label>
-                            <SearchableSelect
-                                value={selectedSynonymWordId}
-                                onValueChange={setSelectedSynonymWordId}
-                                placeholder="Chọn từ đồng nghĩa..."
-                                searchPlaceholder="Tìm kiếm từ đồng nghĩa..."
-                                endpoint="words/search"
-                                className="w-full"
+                            <Input
+                                id="edit-synonym-word"
+                                value={newSynonymWord}
+                                onChange={(e) => setNewSynonymWord(e.target.value)}
+                                placeholder="Nhập từ đồng nghĩa"
                             />
                         </div>
                     </div>
@@ -507,7 +469,7 @@ export default function SynonymsManagement() {
                         <Button onClick={handleEditSynonym} className="bg-blue-600" disabled={saving}>
                             {saving ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Đang lưu...
                                 </>
                             ) : (
@@ -518,7 +480,7 @@ export default function SynonymsManagement() {
                 </DialogContent>
             </Dialog>
 
-            {/* Dialog xác nhận xóa */}
+            {/* Delete confirmation dialog */}
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -527,8 +489,8 @@ export default function SynonymsManagement() {
                             Xác nhận xóa từ đồng nghĩa
                         </DialogTitle>
                         <DialogDescription>
-                            Bạn có chắc chắn muốn xóa mối quan hệ đồng nghĩa giữa từ "{selectedSynonym?.word}" và "
-                            {selectedSynonym?.synonym_word}"? Hành động này không thể hoàn tác.
+                            Bạn có chắc chắn muốn xóa từ đồng nghĩa "{selectedSynonym?.synonym_word}" của từ "
+                            {selectedSynonym?.word.word}"? Hành động này không thể hoàn tác.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -538,7 +500,7 @@ export default function SynonymsManagement() {
                         <Button variant="destructive" onClick={handleDeleteSynonym} disabled={saving}>
                             {saving ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Đang xóa...
                                 </>
                             ) : (

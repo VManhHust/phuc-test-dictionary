@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -14,7 +14,8 @@ import {
     DialogDescription,
     DialogFooter,
 } from "@/components/ui/dialog"
-import { PlusCircle, Search, Edit, Trash2, AlertTriangle } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { PlusCircle, Search, Edit, Trash2, AlertTriangle, Loader2 } from "lucide-react"
 import { apiRequest } from "@/utils/api"
 
 // Định nghĩa kiểu dữ liệu
@@ -28,13 +29,15 @@ type Word = {
     synonym_count: number
     etymology_count: number
 }
+
 type WordResponse = {
-    data: Word[];
-    total: number;
-    total_pages: number;
-    current_page: number;
-    limit: number;
+    data: Word[]
+    total: number
+    total_pages: number
+    current_page: number
+    limit: number
 }
+
 export default function WordsManagement() {
     const [words, setWords] = useState<Word[]>([])
     const [loading, setLoading] = useState(true)
@@ -45,54 +48,81 @@ export default function WordsManagement() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [selectedWord, setSelectedWord] = useState<Word | null>(null)
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
+    const [total, setTotal] = useState(0)
+
     // Form state
     const [newWord, setNewWord] = useState("")
     const [newPronunciation, setNewPronunciation] = useState("")
     const [formError, setFormError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
-    const [selectedWordId, setSelectedWordId] = useState("")
 
-    // Fetch words on component mount
-    useEffect(() => {
-        fetchWords()
-    }, [])
-
-    // Gọi API để lấy danh sách từ
-    const fetchWords = async () => {
-        setLoading(true);
+    // Fetch words with debounced search
+    const fetchWords = useCallback(async (page: number, size: number, search?: string) => {
+        setLoading(true)
         try {
-            const searchParam = searchTerm.trim() || undefined;
-            const data = await apiRequest<WordResponse[] | WordResponse>("words", "GET", undefined, {
-                word: searchParam || ""
-            });
-
-            if (data && 'data' in data) {
-                const wordsData = data?.data?.map((word: any) => ({
-                    id: word.id,
-                    word: word.word,
-                    pronunciation: word.pronunciation,
-                    created_at: word.created_at,
-                    updated_at: word.updated_at,
-                    definition_count: word.definition_count,
-                    synonym_count: word.synonym_count,
-                    etymology_count: word.etymology_count
-                }));
-                setWords(wordsData);
-            } else {
-                setWords([]);
+            const params: Record<string, string> = {
+                page: page.toString(),
+                size: size.toString(),
             }
 
-            setError(null);
-        } catch (err) {
-            console.error("Error fetching words:", err);
-            setError("Không thể tải danh sách từ. Vui lòng thử lại sau.");
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (search && search.trim()) {
+                params.word = search.trim()
+            }
 
-    // Lọc từ theo từ khóa tìm kiếm
-    const filteredWords = words;
+            const data = await apiRequest<WordResponse>("words", "GET", undefined, params)
+
+            if (data) {
+                setWords(data.data || [])
+                setTotalPages(data.total_pages || 1)
+                setCurrentPage(data.current_page || 1)
+                setTotal(data.total || 0)
+            } else {
+                setWords([])
+                setTotalPages(1)
+                setCurrentPage(1)
+                setTotal(0)
+            }
+
+            setError(null)
+        } catch (err) {
+            console.error("Error fetching words:", err)
+            setError("Không thể tải danh sách từ. Vui lòng thử lại sau.")
+            setWords([])
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    // Initial fetch
+    useEffect(() => {
+        fetchWords(currentPage, pageSize)
+    }, [fetchWords, currentPage, pageSize])
+
+    // Handle search with debounce
+    useEffect(() => {
+        const debounceTimer = setTimeout(() => {
+            setCurrentPage(1) // Reset to first page on new search
+            fetchWords(1, pageSize, searchTerm)
+        }, 300)
+
+        return () => clearTimeout(debounceTimer)
+    }, [searchTerm, fetchWords, pageSize])
+
+    // Handle page change
+    const handlePageChange = (page: number) => {
+        if (page < 1 || page > totalPages) return
+        setCurrentPage(page)
+    }
+
+    // Handle page size change
+    const handlePageSizeChange = (size: string) => {
+        setPageSize(Number(size))
+        setCurrentPage(1)
+    }
 
     // Xử lý thêm từ mới
     const handleAddWord = async () => {
@@ -103,29 +133,17 @@ export default function WordsManagement() {
 
         setSaving(true)
         try {
-            const newWordData = await apiRequest<Word>("words/create", "POST", {
+            const newWordData = await apiRequest<Word>("words", "POST", {
                 word: newWord,
                 pronunciation: newPronunciation || "",
             })
 
-            // Check if newWordData is null before using it
             if (!newWordData) {
-                throw new Error("Failed to create new word")
+                setFormError("Không thể thêm từ mới. Vui lòng thử lại sau.")
             }
 
-            // Add the new word to the state
-            const newWordObj: Word = {
-                id: newWordData.id,
-                word: newWordData.word,
-                pronunciation: newWordData.pronunciation,
-                created_at: newWordData.created_at,
-                updated_at: newWordData.updated_at,
-                definition_count: 0,
-                synonym_count: 0,
-                etymology_count: 0,
-            }
-
-            setWords([...words, newWordObj])
+            // Refresh the word list
+            fetchWords(currentPage, pageSize, searchTerm)
 
             // Reset form
             setNewWord("")
@@ -150,17 +168,18 @@ export default function WordsManagement() {
         setSaving(true)
         try {
             // Thực hiện API call để sửa từ
-            const response = await apiRequest(`words/update/${selectedWord.id}`, "PUT", {
+            const response = await apiRequest(`words/${selectedWord.id}`, "PUT", {
                 word: newWord,
                 pronunciation: newPronunciation,
             })
 
             if (response === null) {
-                throw new Error("Failed to update word")
+                setFormError("Không thể cập nhật từ. Vui lòng thử lại sau.")
+                return
             }
 
             // Refresh the word list
-            fetchWords()
+            fetchWords(currentPage, pageSize, searchTerm)
 
             // Reset form
             setNewWord("")
@@ -182,14 +201,10 @@ export default function WordsManagement() {
         setSaving(true)
         try {
             // Thực hiện API call để xóa từ
-            const response = await apiRequest(`words/delete/${selectedWord.id}`, "DELETE")
-
-            if (response === null) {
-                throw new Error("Failed to delete word")
-            }
+            await apiRequest(`words/${selectedWord.id}`, "DELETE")
 
             // Refresh the word list
-            fetchWords()
+            fetchWords(currentPage, pageSize, searchTerm)
             setIsDeleteDialogOpen(false)
         } catch (err) {
             console.error("Error deleting word:", err)
@@ -239,73 +254,126 @@ export default function WordsManagement() {
             {/* Bảng danh sách từ */}
             {loading ? (
                 <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                 </div>
             ) : error ? (
                 <Card className="p-6 text-center text-red-600 bg-red-50">
                     <p>{error}</p>
-                    <Button variant="outline" className="mt-4" onClick={fetchWords}>
+                    <Button variant="outline" className="mt-4" onClick={() => fetchWords(1, pageSize, searchTerm)}>
                         Thử lại
                     </Button>
                 </Card>
             ) : (
-                <div className="border rounded-md overflow-hidden">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[300px]">Từ</TableHead>
-                                <TableHead>Phát âm</TableHead>
-                                <TableHead className="text-center">Định nghĩa</TableHead>
-                                <TableHead className="text-center">Từ đồng nghĩa</TableHead>
-                                <TableHead className="text-center">Nguồn gốc</TableHead>
-                                <TableHead className="text-right">Thao tác</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredWords.length > 0 ? (
-                                filteredWords.map((word) => (
-                                    <TableRow key={word.id}>
-                                        <TableCell className="font-medium">{word.word}</TableCell>
-                                        <TableCell>{word.pronunciation || "-"}</TableCell>
-                                        <TableCell className="text-center">
-                                            <Badge variant="secondary">{word.definition_count}</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <Badge variant="secondary">{word.synonym_count}</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <Badge variant="secondary">{word.etymology_count}</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => openEditDialog(word)}
-                                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => openDeleteDialog(word)}
-                                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                <>
+                    <div className="border rounded-md overflow-hidden">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[300px]">Từ</TableHead>
+                                    <TableHead>Phát âm</TableHead>
+                                    <TableHead className="text-center">Định nghĩa</TableHead>
+                                    <TableHead className="text-center">Từ đồng nghĩa</TableHead>
+                                    <TableHead className="text-center">Nguồn gốc</TableHead>
+                                    <TableHead className="text-right">Thao tác</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {words.length > 0 ? (
+                                    words.map((word) => (
+                                        <TableRow key={word.id}>
+                                            <TableCell className="font-medium">{word.word}</TableCell>
+                                            <TableCell>{word.pronunciation || "-"}</TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant="secondary">{word.definition_count || 0}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant="secondary">{word.synonym_count || 0}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant="secondary">{word.etymology_count || 0}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right space-x-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openEditDialog(word)}
+                                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openDeleteDialog(word)}
+                                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-6 text-gray-500">
+                                            {searchTerm ? "Không tìm thấy từ phù hợp" : "Chưa có từ nào trong từ điển"}
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-6 text-gray-500">
-                                        {searchTerm ? "Không tìm thấy từ phù hợp" : "Chưa có từ nào trong từ điển"}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 0 && (
+                        <div className="flex justify-between items-center mt-4">
+                            <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">
+                  Hiển thị {words.length} / {total} kết quả
+                </span>
+                                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                                    <SelectTrigger className="w-[100px]">
+                                        <SelectValue placeholder="Số lượng" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="5">5 / trang</SelectItem>
+                                        <SelectItem value="10">10 / trang</SelectItem>
+                                        <SelectItem value="20">20 / trang</SelectItem>
+                                        <SelectItem value="50">50 / trang</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex space-x-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                >
+                                    Trước
+                                </Button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <Button
+                                        key={page}
+                                        variant={currentPage === page ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => handlePageChange(page)}
+                                    >
+                                        {page}
+                                    </Button>
+                                ))}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    Sau
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Dialog thêm từ mới */}
@@ -352,7 +420,7 @@ export default function WordsManagement() {
                         <Button onClick={handleAddWord} className="bg-blue-600" disabled={saving}>
                             {saving ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Đang lưu...
                                 </>
                             ) : (
@@ -407,7 +475,7 @@ export default function WordsManagement() {
                         <Button onClick={handleEditWord} className="bg-blue-600" disabled={saving}>
                             {saving ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Đang lưu...
                                 </>
                             ) : (
@@ -438,7 +506,7 @@ export default function WordsManagement() {
                         <Button variant="destructive" onClick={handleDeleteWord} disabled={saving}>
                             {saving ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Đang xóa...
                                 </>
                             ) : (

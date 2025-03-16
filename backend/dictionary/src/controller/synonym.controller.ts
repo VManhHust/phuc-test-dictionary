@@ -9,15 +9,12 @@ export class SynonymController {
   constructor(private readonly synonymService: SynonymService) {
   }
 
-  @Get('/find-synonym')
+  @Get()
   async findSynonym(
-      @Query('skip') skip?: number,
-      @Query('take') take?: number,
+      @Query('page') skip?: number,
+      @Query('size') take?: number,
       @Query('word') word?: string
   ){
-    if (!word) {
-      throw new NotFoundException('Bạn cần nhập một từ để tìm đồng nghĩa.');
-    }
     return await this.synonymService.search(word, Number(skip), Number(take));
   }
 

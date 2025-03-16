@@ -8,15 +8,12 @@ import {CreateDefinitionDto} from "../dto/create-definition.dto";
 export class DefinitionController {
     constructor(private readonly definitionService: DefinitionService) {
     }
-    @Get('/find-definition')
+    @Get()
     async findDefinition(
-        @Query('skip') skip?: number,
-        @Query('take') take?: number,
+        @Query('page') skip?: number,
+        @Query('size') take?: number,
         @Query('word') word?: string
     ){
-        if (!word) {
-            throw new NotFoundException('Bạn cần nhập một từ để tìm định nghĩa của nó.');
-        }
         return await this.definitionService.search(word, Number(skip), Number(take));
     }
 

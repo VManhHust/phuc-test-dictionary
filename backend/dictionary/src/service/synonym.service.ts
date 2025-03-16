@@ -18,18 +18,10 @@ export class SynonymService {
     ) {
     }
 
-    async search(word: string, skip?: number, take?: number): Promise<any> {
-        const wordEntity = await this.wordRepository.findOne({
-            where: {word: ILike(word)},
-        });
-
-        if (!wordEntity) {
-            throw new NotFoundException(`Từ "${word}" không có trong từ điển.`);
-        }
-
+    async search(word: string | undefined, skip?: number, take?: number): Promise<any> {
         return await this.paginationService.paginate(
             this.synonymRepository,
-            { skip, take },
+            { skip, take, where: word ? { word: { id: word } } : {}, },
             ['word']
         );
     }
