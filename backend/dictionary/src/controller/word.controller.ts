@@ -29,12 +29,20 @@ export class WordController {
   async remove(@Param('id') id: string) {
     return this.wordService.remove(id);
   }
+
   @Get()
   async search(
       @Query('word') word: string,
       @Query('page') skip?: number,
       @Query('size') take?: number,
+      @Query('fetchCounts') fetchCounts?: string, // Thêm query param fetchCounts
   ) {
-    return await this.wordService.search(word, Number(skip), Number(take));
+    return await this.wordService.search(
+        word,
+        Number(skip),
+        Number(take),
+        fetchCounts === 'true'
+    );
   }
+
 }

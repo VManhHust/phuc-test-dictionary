@@ -12,7 +12,7 @@ export class Etymology {
   @Column()
   origin: string;
 
-  @Column()
+  @Column({nullable: true})
   url: string;
 
   @CreateDateColumn()

@@ -7,4 +7,6 @@ export class CreateEtymologyDto {
 
     @IsString()
     origin: string;
+
+    url: string;
 }

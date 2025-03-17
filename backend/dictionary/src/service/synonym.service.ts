@@ -21,7 +21,9 @@ export class SynonymService {
     async search(word: string | undefined, skip?: number, take?: number): Promise<any> {
         return await this.paginationService.paginate(
             this.synonymRepository,
-            { skip, take, where: word ? { word: { id: word } } : {}, },
+            {
+                skip, take, where: word ? {word: {id: word}} : {}, order: {updated_at: 'DESC'},
+            },
             ['word']
         );
     }
@@ -61,6 +63,7 @@ export class SynonymService {
         const synonym = await this.getById(id);
         await this.synonymRepository.remove(synonym);
     }
+
     async getAllSynonyms(query: { skip?: number; take?: number }) {
         return await this.paginationService.paginate(this.synonymRepository, query);
     }

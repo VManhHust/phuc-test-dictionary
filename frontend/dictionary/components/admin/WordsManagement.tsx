@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/router"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -15,7 +16,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusCircle, Search, Edit, Trash2, AlertTriangle, Loader2 } from "lucide-react"
+import { PlusCircle, Search, Edit, Trash2, AlertTriangle, Loader2, X } from "lucide-react"
 import { apiRequest } from "@/utils/api"
 
 // Định nghĩa kiểu dữ liệu
@@ -39,6 +40,7 @@ type WordResponse = {
 }
 
 export default function WordsManagement() {
+    const router = useRouter()
     const [words, setWords] = useState<Word[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -67,6 +69,7 @@ export default function WordsManagement() {
             const params: Record<string, string> = {
                 page: page.toString(),
                 size: size.toString(),
+                fetchCounts: "true",
             }
 
             if (search && search.trim()) {
@@ -229,6 +232,67 @@ export default function WordsManagement() {
         setIsDeleteDialogOpen(true)
     }
 
+    // Chuyển đến tab định nghĩa với từ đã chọn
+    const navigateToDefinitions = (word: Word) => {
+        // Lưu từ đã chọn vào localStorage để tab định nghĩa có thể lấy ra
+        localStorage.setItem(
+            "selectedFilterWord",
+            JSON.stringify({
+                id: word.id,
+                word: word.word,
+                pronunciation: word.pronunciation,
+            }),
+        )
+
+        // Chuyển đến tab định nghĩa
+        router.push({
+            pathname: "/admin/dictionary",
+            query: { tab: "definitions", wordId: word.id },
+        })
+    }
+
+    // Chuyển đến tab từ đồng nghĩa với từ đã chọn
+    const navigateToSynonyms = (word: Word) => {
+        // Lưu từ đã chọn vào localStorage với thông tin đầy đủ
+        const wordToSave = {
+            id: word.id,
+            word: word.word,
+            pronunciation: word.pronunciation,
+        }
+        console.log("Saving word to localStorage:", wordToSave)
+        localStorage.setItem("selectedFilterWord", JSON.stringify(wordToSave))
+
+        // Chuyển đến tab từ đồng nghĩa
+        router.push({
+            pathname: "/admin/dictionary",
+            query: { tab: "synonyms", wordId: word.id },
+        })
+    }
+
+    // Chuyển đến tab nguồn gốc với từ đã chọn
+    const navigateToEtymologies = (word: Word) => {
+        localStorage.setItem(
+            "selectedFilterWord",
+            JSON.stringify({
+                id: word.id,
+                word: word.word,
+                pronunciation: word.pronunciation,
+            }),
+        )
+
+        router.push({
+            pathname: "/admin/dictionary",
+            query: { tab: "etymologies", wordId: word.id },
+        })
+    }
+
+    // Xử lý khi xóa bộ lọc tìm kiếm
+    const handleClearSearch = () => {
+        setSearchTerm("")
+        setCurrentPage(1)
+        fetchWords(1, pageSize)
+    }
+
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
@@ -247,8 +311,19 @@ export default function WordsManagement() {
                     placeholder="Tìm kiếm từ..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-10"
+                    className="pl-10 pr-10 h-10"
                 />
+                {searchTerm && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 text-gray-400 hover:text-gray-600"
+                        onClick={handleClearSearch}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                )}
             </div>
 
             {/* Bảng danh sách từ */}
@@ -284,13 +359,31 @@ export default function WordsManagement() {
                                             <TableCell className="font-medium">{word.word}</TableCell>
                                             <TableCell>{word.pronunciation || "-"}</TableCell>
                                             <TableCell className="text-center">
-                                                <Badge variant="secondary">{word.definition_count || 0}</Badge>
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="cursor-pointer hover:bg-blue-100 transition-colors"
+                                                    onClick={() => navigateToDefinitions(word)}
+                                                >
+                                                    {word.definition_count || 0}
+                                                </Badge>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Badge variant="secondary">{word.synonym_count || 0}</Badge>
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="cursor-pointer hover:bg-blue-100 transition-colors"
+                                                    onClick={() => navigateToSynonyms(word)}
+                                                >
+                                                    {word.synonym_count || 0}
+                                                </Badge>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Badge variant="secondary">{word.etymology_count || 0}</Badge>
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="cursor-pointer hover:bg-blue-100 transition-colors"
+                                                    onClick={() => navigateToEtymologies(word)}
+                                                >
+                                                    {word.etymology_count || 0}
+                                                </Badge>
                                             </TableCell>
                                             <TableCell className="text-right space-x-2">
                                                 <Button
@@ -377,7 +470,17 @@ export default function WordsManagement() {
             )}
 
             {/* Dialog thêm từ mới */}
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <Dialog
+                open={isAddDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setNewWord("")
+                        setNewPronunciation("")
+                        setFormError(null)
+                    }
+                    setIsAddDialogOpen(open)
+                }}
+            >
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Thêm từ mới</DialogTitle>
@@ -432,7 +535,17 @@ export default function WordsManagement() {
             </Dialog>
 
             {/* Dialog chỉnh sửa từ */}
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <Dialog
+                open={isEditDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setNewWord("")
+                        setNewPronunciation("")
+                        setFormError(null)
+                    }
+                    setIsEditDialogOpen(open)
+                }}
+            >
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Chỉnh sửa từ</DialogTitle>

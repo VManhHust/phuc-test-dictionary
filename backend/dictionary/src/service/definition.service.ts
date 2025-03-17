@@ -21,7 +21,10 @@ export class DefinitionService {
     async search(word: string | undefined, skip?: number, take?: number): Promise<any> {
         return await this.paginationService.paginate(
             this.definitionRepository,
-            { skip, take, where: word ? { word: { id: word } } : {}, },
+            {
+                skip, take, where: word ? {word: {id: word}} : {}, order: {updated_at: 'DESC'},
+            },
+
             ['word']
         );
     }
@@ -65,6 +68,7 @@ export class DefinitionService {
         const definition = await this.getById(id);
         await this.definitionRepository.remove(definition);
     }
+
     async getAllDefinitions(query: { skip?: number; take?: number }) {
         return await this.paginationService.paginate(this.definitionRepository, query);
     }

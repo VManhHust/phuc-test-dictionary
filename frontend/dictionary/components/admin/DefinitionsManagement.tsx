@@ -1,9 +1,9 @@
 "use client"
 
-import {useState, useEffect} from "react"
-import {Button} from "@/components/ui/button"
-import {Textarea} from "@/components/ui/textarea"
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
     Dialog,
     DialogContent,
@@ -12,9 +12,9 @@ import {
     DialogDescription,
     DialogFooter,
 } from "@/components/ui/dialog"
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
-import {Badge} from "@/components/ui/badge"
-import {PlusCircle, Edit, Trash2, AlertTriangle, Loader2, Filter} from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { PlusCircle, Edit, Trash2, AlertTriangle, Loader2, Filter } from "lucide-react"
 import WordSearchBar from "./WordSearchBar"
 
 // Types
@@ -48,8 +48,8 @@ type Dictionary = {
 }
 
 export default function DefinitionsManagement() {
-    // State for selected word and definitions
-    const [selectedWord, setSelectedWord] = useState<Word | null>(null)
+    // State for filter word and definitions
+    const [filterWord, setFilterWord] = useState<Word | null>(null)
     const [definitions, setDefinitions] = useState<Definition[]>([])
     const [dictionaries, setDictionaries] = useState<Dictionary[]>([])
 
@@ -65,7 +65,8 @@ export default function DefinitionsManagement() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [selectedDefinition, setSelectedDefinition] = useState<Definition | null>(null)
 
-    // Form state
+    // Form state - separate from filter state
+    const [formWord, setFormWord] = useState<Word | null>(null)
     const [selectedDictionaryId, setSelectedDictionaryId] = useState("")
     const [definitionText, setDefinitionText] = useState("")
     const [exampleText, setExampleText] = useState("")
@@ -82,20 +83,37 @@ export default function DefinitionsManagement() {
         fetchDefinitions(currentPage, pageSize)
     }, [currentPage, pageSize])
 
-    // Fetch definitions when a word is selected
+    // Fetch definitions when a filter word is selected
     useEffect(() => {
-        if (selectedWord) {
+        if (filterWord) {
+            console.log("Filtering definitions for word:", filterWord)
             setCurrentPage(1)
             fetchDefinitions(1, pageSize)
         }
-    }, [selectedWord, pageSize])
+    }, [filterWord, pageSize])
+
+    // Thêm useEffect để kiểm tra và lấy từ đã chọn từ localStorage khi component mount
+    useEffect(() => {
+        const savedWord = localStorage.getItem("selectedFilterWord")
+        if (savedWord) {
+            try {
+                const parsedWord = JSON.parse(savedWord) as Word
+                console.log("Loading saved word from localStorage for definitions:", parsedWord)
+                setFilterWord(parsedWord)
+                // Xóa từ đã lưu sau khi đã sử dụng
+                localStorage.removeItem("selectedFilterWord")
+            } catch (error) {
+                console.error("Error parsing saved word:", error)
+            }
+        }
+    }, [])
 
     // Function to fetch dictionaries
     const fetchDictionaries = async () => {
         setDictionaries([
-            {id: "1", name: "Từ điển Tiếng Việt"},
-            {id: "2", name: "Từ điển Hán-Việt"},
-            {id: "3", name: "Từ điển Việt-Anh"},
+            { id: "1", name: "Từ điển Tiếng Việt" },
+            { id: "2", name: "Từ điển Hán-Việt" },
+            { id: "3", name: "Từ điển Việt-Anh" },
         ])
     }
 
@@ -107,8 +125,8 @@ export default function DefinitionsManagement() {
             url.searchParams.append("page", page.toString())
             url.searchParams.append("size", size.toString())
 
-            if (selectedWord) {
-                url.searchParams.append("word", selectedWord.id)
+            if (filterWord) {
+                url.searchParams.append("word", filterWord.id)
             }
 
             const response = await fetch(url.toString())
@@ -129,25 +147,35 @@ export default function DefinitionsManagement() {
         }
     }
 
-    // Handle word selection from search
-    const handleWordSelect = (word: Word) => {
-        setSelectedWord(word)
+    // Handle word selection from search for filtering
+    const handleFilterWordSelect = (word: Word) => {
+        setFilterWord(word)
     }
 
     // Clear word filter
     const clearWordFilter = () => {
-        setSelectedWord(null)
+        setFilterWord(null)
         setCurrentPage(1)
         fetchDefinitions(1, pageSize)
     }
 
+    // Open add dialog with reset form
+    const openAddDialog = () => {
+        setFormWord(null)
+        setSelectedDictionaryId("")
+        setDefinitionText("")
+        setExampleText("")
+        setFormError(null)
+        setIsAddDialogOpen(true)
+    }
+
     // Handle adding a new definition
     const handleAddDefinition = async () => {
-        if (!selectedWord) {
+        if (!formWord) {
             setFormError("Vui lòng chọn từ")
             return
         }
-        if (!selectedWord || !definitionText.trim()) {
+        if (!formWord || !definitionText.trim()) {
             setFormError("Vui lòng điền đầy đủ thông tin bắt buộc")
             return
         }
@@ -160,7 +188,7 @@ export default function DefinitionsManagement() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    wordId: selectedWord.id,
+                    wordId: formWord.id,
                     definition: definitionText,
                     dictionary_name: selectedDictionaryId,
                     example: exampleText || undefined,
@@ -176,6 +204,7 @@ export default function DefinitionsManagement() {
             fetchDefinitions(currentPage, pageSize)
 
             // Reset form
+            setFormWord(null)
             setSelectedDictionaryId("")
             setDefinitionText("")
             setExampleText("")
@@ -286,8 +315,8 @@ export default function DefinitionsManagement() {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold">Quản lý Định nghĩa</h2>
-                <Button onClick={() => setIsAddDialogOpen(true)} className="bg-blue-600">
-                    <PlusCircle className="mr-2 h-4 w-4"/>
+                <Button onClick={openAddDialog} className="bg-blue-600">
+                    <PlusCircle className="mr-2 h-4 w-4" />
                     Thêm định nghĩa mới
                 </Button>
             </div>
@@ -296,21 +325,25 @@ export default function DefinitionsManagement() {
             <div className="mb-6">
                 <div className="flex gap-2 items-center">
                     <div className="flex-1">
-                        <WordSearchBar onWordSelect={handleWordSelect} placeholder="Tìm kiếm từ để lọc định nghĩa..."/>
+                        <WordSearchBar
+                            onWordSelect={handleFilterWordSelect}
+                            onClear={clearWordFilter}
+                            placeholder="Tìm kiếm từ để lọc định nghĩa..."
+                        />
                     </div>
-                    {selectedWord && (
+                    {filterWord && (
                         <Button variant="outline" size="sm" onClick={clearWordFilter} className="whitespace-nowrap">
                             Xóa bộ lọc
                         </Button>
                     )}
                 </div>
 
-                {selectedWord && (
+                {filterWord && (
                     <div className="mt-2 p-2 bg-blue-50 rounded-md flex items-center">
-                        <Filter className="h-4 w-4 text-blue-500 mr-2"/>
+                        <Filter className="h-4 w-4 text-blue-500 mr-2" />
                         <p className="text-blue-700 font-medium">
-                            Đang lọc định nghĩa của: <span className="font-bold">{selectedWord.word}</span>
-                            {selectedWord.pronunciation && ` (${selectedWord.pronunciation})`}
+                            Đang lọc định nghĩa của: <span className="font-bold">{filterWord.word}</span>
+                            {filterWord.pronunciation && ` (${filterWord.pronunciation})`}
                         </p>
                     </div>
                 )}
@@ -319,7 +352,7 @@ export default function DefinitionsManagement() {
             {/* Definitions table */}
             {loading ? (
                 <div className="flex justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500"/>
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                 </div>
             ) : (
                 <>
@@ -347,8 +380,7 @@ export default function DefinitionsManagement() {
                                             </TableCell>
                                             <TableCell>
                                                 {definition.example ? (
-                                                    <div
-                                                        className="text-gray-600 italic max-h-20 overflow-auto">"{definition.example}"</div>
+                                                    <div className="text-gray-600 italic max-h-20 overflow-auto">"{definition.example}"</div>
                                                 ) : (
                                                     <span className="text-gray-400">Không có</span>
                                                 )}
@@ -360,7 +392,7 @@ export default function DefinitionsManagement() {
                                                     onClick={() => openEditDialog(definition)}
                                                     className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                                                 >
-                                                    <Edit className="h-4 w-4"/>
+                                                    <Edit className="h-4 w-4" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
@@ -368,7 +400,7 @@ export default function DefinitionsManagement() {
                                                     onClick={() => openDeleteDialog(definition)}
                                                     className="text-red-600 hover:text-red-800 hover:bg-red-50"
                                                 >
-                                                    <Trash2 className="h-4 w-4"/>
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -376,7 +408,7 @@ export default function DefinitionsManagement() {
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center py-6 text-gray-500">
-                                            {selectedWord ? "Chưa có định nghĩa nào cho từ này" : "Không có định nghĩa nào trong hệ thống"}
+                                            {filterWord ? "Chưa có định nghĩa nào cho từ này" : "Không có định nghĩa nào trong hệ thống"}
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -396,7 +428,7 @@ export default function DefinitionsManagement() {
                                 >
                                     Trước
                                 </Button>
-                                {Array.from({length: totalPages}, (_, i) => i + 1).map((page) => (
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                                     <Button
                                         key={page}
                                         variant={currentPage === page ? "default" : "outline"}
@@ -421,7 +453,20 @@ export default function DefinitionsManagement() {
             )}
 
             {/* Add definition dialog */}
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <Dialog
+                open={isAddDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        // Reset form when dialog is closed
+                        setFormWord(null)
+                        setSelectedDictionaryId("")
+                        setDefinitionText("")
+                        setExampleText("")
+                        setFormError(null)
+                    }
+                    setIsAddDialogOpen(open)
+                }}
+            >
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Thêm định nghĩa mới</DialogTitle>
@@ -430,7 +475,7 @@ export default function DefinitionsManagement() {
                     <div className="space-y-4 py-4">
                         {formError && (
                             <div className="bg-red-50 text-red-600 p-3 rounded-md flex items-center">
-                                <AlertTriangle className="h-4 w-4 mr-2"/>
+                                <AlertTriangle className="h-4 w-4 mr-2" />
                                 {formError}
                             </div>
                         )}
@@ -439,9 +484,9 @@ export default function DefinitionsManagement() {
                                 Chọn từ <span className="text-red-500">*</span>
                             </label>
                             <WordSearchBar
-                                onWordSelect={(word) => setSelectedWord(word)}
+                                onWordSelect={(word) => setFormWord(word)}
                                 placeholder="Tìm kiếm từ..."
-                                initialValue={selectedWord}
+                                initialValue={formWord}
                             />
                         </div>
                         <div className="space-y-2">
@@ -490,7 +535,7 @@ export default function DefinitionsManagement() {
                             variant="outline"
                             onClick={() => {
                                 setIsAddDialogOpen(false)
-                                setSelectedWord(null)
+                                setFormWord(null)
                                 setSelectedDictionaryId("")
                                 setDefinitionText("")
                                 setExampleText("")
@@ -500,11 +545,10 @@ export default function DefinitionsManagement() {
                         >
                             Hủy
                         </Button>
-                        <Button onClick={handleAddDefinition} className="bg-blue-600"
-                                disabled={saving || !selectedWord}>
+                        <Button onClick={handleAddDefinition} className="bg-blue-600" disabled={saving || !formWord}>
                             {saving ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Đang lưu...
                                 </>
                             ) : (
@@ -516,17 +560,28 @@ export default function DefinitionsManagement() {
             </Dialog>
 
             {/* Edit definition dialog */}
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <Dialog
+                open={isEditDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        // Reset form when dialog is closed
+                        setSelectedDictionaryId("")
+                        setDefinitionText("")
+                        setExampleText("")
+                        setFormError(null)
+                    }
+                    setIsEditDialogOpen(open)
+                }}
+            >
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Chỉnh sửa định nghĩa</DialogTitle>
-                        <DialogDescription>Chỉnh sửa định nghĩa cho từ
-                            "{selectedDefinition?.word.word}"</DialogDescription>
+                        <DialogDescription>Chỉnh sửa định nghĩa cho từ "{selectedDefinition?.word.word}"</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         {formError && (
                             <div className="bg-red-50 text-red-600 p-3 rounded-md flex items-center">
-                                <AlertTriangle className="h-4 w-4 mr-2"/>
+                                <AlertTriangle className="h-4 w-4 mr-2" />
                                 {formError}
                             </div>
                         )}
@@ -578,7 +633,7 @@ export default function DefinitionsManagement() {
                         <Button onClick={handleEditDefinition} className="bg-blue-600" disabled={saving}>
                             {saving ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Đang lưu...
                                 </>
                             ) : (
@@ -594,12 +649,11 @@ export default function DefinitionsManagement() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle className="text-red-600 flex items-center">
-                            <AlertTriangle className="h-5 w-5 mr-2"/>
+                            <AlertTriangle className="h-5 w-5 mr-2" />
                             Xác nhận xóa định nghĩa
                         </DialogTitle>
                         <DialogDescription>
-                            Bạn có chắc chắn muốn xóa định nghĩa này của từ "{selectedDefinition?.word.word}"? Hành động
-                            này không thể
+                            Bạn có chắc chắn muốn xóa định nghĩa này của từ "{selectedDefinition?.word.word}"? Hành động này không thể
                             hoàn tác.
                         </DialogDescription>
                     </DialogHeader>
@@ -610,7 +664,7 @@ export default function DefinitionsManagement() {
                         <Button variant="destructive" onClick={handleDeleteDefinition} disabled={saving}>
                             {saving ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Đang xóa...
                                 </>
                             ) : (

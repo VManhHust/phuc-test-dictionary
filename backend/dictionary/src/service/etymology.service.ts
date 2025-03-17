@@ -27,7 +27,7 @@ export class EtymologyService {
     }
 
     async create(createEtymologyDto: CreateEtymologyDto): Promise<Etymology> {
-        const {wordId, origin} = createEtymologyDto;
+        const {wordId, origin, url} = createEtymologyDto;
 
         const word = await this.wordRepository.findOne({where: {id: wordId}});
         if (!word) {
@@ -37,7 +37,7 @@ export class EtymologyService {
         const save_etymology = new Etymology();
         save_etymology.word = word;
         save_etymology.origin = origin;
-
+        save_etymology.url = url;
         return await this.etymologyRepository.save(save_etymology);
     }
 

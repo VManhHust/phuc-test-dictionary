@@ -8,6 +8,8 @@ import {PaginationService} from "./pagination/pagination.service";
 import {Synonym} from "../entity/synonym.entity";
 import {Definition} from "../entity/definition.entity";
 import {Etymology} from "../entity/etymology.entity";
+import {WordDto} from "../dto/word.dto";
+import { PaginatedWordDto } from '../dto/paginated-word.dto';
 
 @Injectable()
 export class WordService {
@@ -96,14 +98,42 @@ export class WordService {
         return await this.paginationService.paginate(this.wordRepository, query);
     }
 
-    async search(word: string, skip?: number, take?: number): Promise<any> {
-        console.log("Received word:", word);
+    async search(word: string, page?: number, size?: number, fetchCounts = false): Promise<{ data: WordDto[], total: number, total_pages: number, current_page: number, limit: number }> {
+        console.log("Received word:", word, "Fetch counts:", fetchCounts);
 
-        return this.paginationService.paginate(this.wordRepository, {
-            skip,
-            take,
-            where: word ? { word: ILike(`%${word}%`) } : {},
-            order: { updated_at: 'DESC' },
-        });
+        const take = size || 10;
+        const currentPage = page || 1;
+        const skip = (currentPage - 1) * take; // FIX: Đúng chuẩn offset của TypeORM
+
+        const queryBuilder = this.wordRepository.createQueryBuilder("word")
+            .leftJoinAndSelect("word.definitions", "definition")
+            .leftJoinAndSelect("word.etymologies", "etymology")
+            .leftJoinAndSelect("word.synonyms", "synonym")
+            .where(word ? { word: ILike(`%${word}%`) } : {})
+            .orderBy("word.updated_at", "DESC")
+            .skip(skip)
+            .take(take);
+
+        const [data, total] = await queryBuilder.getManyAndCount();
+
+        const formattedData: WordDto[] = data.map(item => ({
+            id: item.id,
+            word: item.word,
+            pronunciation: item.pronunciation,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            definition_count: fetchCounts ? item.definitions.length : 0,
+            etymology_count: fetchCounts ? item.etymologies.length : 0,
+            synonym_count: fetchCounts ? item.synonyms.length : 0,
+        }));
+
+        return {
+            data: formattedData,
+            total,
+            total_pages: Math.ceil(total / take),
+            current_page: currentPage, // FIX: Trả đúng page user yêu cầu
+            limit: take,
+        };
     }
+
 }
