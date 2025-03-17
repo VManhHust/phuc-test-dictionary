@@ -29,8 +29,10 @@ export class EtymologyService {
     async create(createEtymologyDto: CreateEtymologyDto): Promise<Etymology> {
         const {wordId, origin} = createEtymologyDto;
 
-        const word = await this.wordRepository.findOne({where: {id: wordId}});
-        if (!word) {
+        let word: Word;
+        try {
+            word = await this.wordRepository.findOneOrFail({ where: { id: wordId } });
+        } catch {
             throw new NotFoundException(`Từ với ID "${wordId}" không tìm thấy.`);
         }
 

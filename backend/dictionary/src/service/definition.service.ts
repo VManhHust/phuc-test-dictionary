@@ -30,9 +30,10 @@ export class DefinitionService {
     async create(createDefinitionDto: CreateDefinitionDto): Promise<Definition> {
         const {wordId, dictionary_name, definition, example} = createDefinitionDto;
 
-        // Kiểm tra xem từ có tồn tại không
-        const word = await this.wordRepository.findOne({where: {id: wordId}});
-        if (!word) {
+        let word: Word;
+        try {
+            word = await this.wordRepository.findOneOrFail({ where: { id: wordId } });
+        } catch {
             throw new NotFoundException(`Từ với ID "${wordId}" không tìm thấy.`);
         }
 

@@ -29,8 +29,10 @@ export class SynonymService {
     async create(createSynonymDto: CreateSynonymDto): Promise<Synonym> {
         const {wordId, synonym_word} = createSynonymDto;
 
-        const word = await this.wordRepository.findOne({where: {id: wordId}});
-        if (!word) {
+        let word: Word;
+        try {
+            word = await this.wordRepository.findOneOrFail({ where: { id: wordId } });
+        } catch {
             throw new NotFoundException(`Từ với ID "${wordId}" không tìm thấy.`);
         }
 
