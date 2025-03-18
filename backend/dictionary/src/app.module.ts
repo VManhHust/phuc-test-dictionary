@@ -21,10 +21,11 @@ import {DefinitionModule} from './module/definition.module';
 import {PostModule} from './module/post.module';
 import {CommentModule} from "./module/comment.module";
 import {ReplyModule} from "./module/reply.module";
-import {Role} from "./entity/role.entity";
-import {Permission} from "./entity/permission.entity";
+// import {Role} from "./entity/role.entity";
+// import {Permission} from "./entity/permission.entity";
 import {Function} from "./entity/function.entity";
 import {UserModule} from "./module/user.module";
+import {AuthModule} from "./auth/auth.module";
 
 @Module({
     imports: [
@@ -48,7 +49,7 @@ import {UserModule} from "./module/user.module";
                 },
             }),
         }),
-        TypeOrmModule.forFeature([User, Word, Definition, Etymology, Synonym, Statistic, Comment, PostEntity, Reply, SearchLog, Role, Permission, Function]),
+        TypeOrmModule.forFeature([User, Word, Definition, Etymology, Synonym, Statistic, Comment, PostEntity, Reply, SearchLog, Function]),
         WordModule,
         SynonymModule,
         EtymologyModule,
@@ -56,7 +57,8 @@ import {UserModule} from "./module/user.module";
         PostModule,
         CommentModule,
         ReplyModule,
-        UserModule
+        UserModule,
+        AuthModule
     ],
     controllers: [AppController],
     providers: [AppService],
