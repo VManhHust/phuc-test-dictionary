@@ -13,6 +13,10 @@ import {Comment} from './entity/comment.entity';
 import {PostEntity} from './entity/post.entity';
 import {Reply} from './entity/reply.entity';
 import {SearchLog} from './entity/search-log.entity';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
+
 import * as process from 'process';
 import {WordModule} from './module/word.module';
 import {SynonymModule} from './module/synonym.module';
@@ -26,6 +30,7 @@ import {ReplyModule} from "./module/reply.module";
 import {Function} from "./entity/function.entity";
 import {UserModule} from "./module/user.module";
 import {AuthModule} from "./auth/auth.module";
+import {MailModule} from "./mail/mail.module";
 
 @Module({
     imports: [
@@ -58,10 +63,23 @@ import {AuthModule} from "./auth/auth.module";
         CommentModule,
         ReplyModule,
         UserModule,
-        AuthModule
+        AuthModule,
+        MailModule,
     ],
     controllers: [AppController],
-    providers: [AppService],
+    providers: [
+        AppService,
+        // Áp dụng JwtAuthGuard cho tất cả các routes
+        {
+            provide: APP_GUARD,
+            useClass: JwtAuthGuard,
+        },
+        // Áp dụng RolesGuard cho tất cả các routes
+        {
+            provide: APP_GUARD,
+            useClass: RolesGuard,
+        },
+    ],
 })
 export class AppModule {
 }

@@ -3,6 +3,7 @@ import { WordService } from '../service/word.service';
 import { Word } from '../entity/word.entity';
 import {CreateWordDto} from "../dto/create-word.dto";
 import {UpdateWordDto} from "../dto/update-word.dto";
+import {Roles} from "../auth/decorators/roles.decorator";
 
 @Controller('words')
 export class WordController {
@@ -17,6 +18,7 @@ export class WordController {
     return result;
   }
   @Post()
+  @Roles('ADMIN')
   async create(@Body() createWordDto: CreateWordDto) {
     return this.wordService.create(createWordDto);
   }
