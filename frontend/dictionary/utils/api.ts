@@ -1,69 +1,65 @@
-// API utility function
+// API utility functions
+const API_BASE_URL = 'http://localhost:3001';
+
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+
 export async function apiRequest<T>(
-    endpoint: string,
-    method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
-    body?: any,
-    params?: Record<string, string>
+  endpoint: string,
+  method: HttpMethod = 'GET',
+  data?: any,
+  params?: Record<string, string>
 ): Promise<T | null> {
-    try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
-        const url = new URL(`${baseUrl}/${endpoint}`)
-
-        // Add query parameters if provided
-        if (params) {
-            Object.keys(params).forEach((key) => {
-                url.searchParams.append(key, params[key])
-            })
+  try {
+    // Construct URL with query parameters
+    const url = new URL(`${API_BASE_URL}/${endpoint}`);
+    if (params) {
+      Object.keys(params).forEach(key => {
+        if (params[key]) {
+          url.searchParams.append(key, params[key]);
         }
-
-        // Get token from localStorage
-        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
-
-        const headers: HeadersInit = {
-            "Content-Type": "application/json",
-        }
-
-        // Add authorization header if token exists
-        if (token) {
-            headers["Authorization"] = `Bearer ${token}`
-        }
-
-        const options: RequestInit = {
-            method,
-            headers,
-        }
-
-        // Add body for non-GET requests
-        if (method !== "GET" && body) {
-            options.body = JSON.stringify(body)
-        }
-
-        const response = await fetch(url.toString(), options)
-
-        // Handle unauthorized response
-        if (response.status === 401) {
-            // Clear stored credentials
-            if (typeof window !== "undefined") {
-                localStorage.removeItem("token")
-                localStorage.removeItem("user")
-                // Redirect to login page if not already there
-                if (window.location.pathname !== "/login") {
-                    window.location.href = "/login"
-                }
-            }
-            return null
-        }
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            console.error(`API Error (${response.status}):`, errorData)
-            throw new Error(errorData.message || `Request failed with status ${response.status}`)
-        }
-
-        const data = await response.json()
-        return data
-    } catch (error) {
-        console.error("API request error:", error)
-        return null
+      });
     }
+
+    // Configure request options
+    const options: RequestInit = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Include cookies for authentication
+    };
+
+    // Add body for POST/PUT requests
+    if (data && (method === 'POST' || method === 'PUT')) {
+      options.body = JSON.stringify(data);
+    }
+
+    // Make the request
+    const response = await fetch(url.toString(), options);
+
+    // Handle non-2xx responses
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`API Error (${response.status}):`, errorData);
+      
+      // For 404 errors, return null instead of throwing
+      if (response.status === 404) {
+        return null;
+      }
+      
+      throw new Error(errorData.message || `API request failed with status ${response.status}`);
+    }
+
+    // For DELETE requests that return no content
+    if (method === 'DELETE' && response.status === 204) {
+      return { success: true } as unknown as T;
+    }
+
+    // Parse and return the response data
+    const responseData = await response.json();
+    return responseData;
+  } catch (error) {
+    console.error('API Request Error:', error);
+    throw error;
+  }
 }

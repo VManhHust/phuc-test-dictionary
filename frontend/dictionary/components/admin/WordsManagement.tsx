@@ -632,4 +632,3 @@ export default function WordsManagement() {
         </div>
     )
 }
-

@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Edit, Trash2, AlertTriangle, Loader2, Filter } from "lucide-react"
 import WordSearchBar from "./WordSearchBar"
+import { apiRequest } from "@/utils/api"
 
 // Types
 type Word = {
@@ -57,7 +58,8 @@ export default function DefinitionsManagement() {
     const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
-    const [pageSize] = useState(5)
+    const [pageSize, setPageSize] = useState(5)
+    const [total, setTotal] = useState(0)
 
     // State for dialogs
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -110,38 +112,49 @@ export default function DefinitionsManagement() {
 
     // Function to fetch dictionaries
     const fetchDictionaries = async () => {
-        setDictionaries([
-            { id: "1", name: "Từ điển Tiếng Việt" },
-            { id: "2", name: "Từ điển Hán-Việt" },
-            { id: "3", name: "Từ điển Việt-Anh" },
-        ])
+        try {
+            // Thực tế sẽ gọi API để lấy danh sách từ điển
+            // Tạm thời sử dụng dữ liệu mẫu
+            setDictionaries([
+                { id: "Từ điển Tiếng Việt", name: "Từ điển Tiếng Việt" },
+                { id: "Từ điển Hán-Việt", name: "Từ điển Hán-Việt" },
+                { id: "Từ điển Việt-Anh", name: "Từ điển Việt-Anh" },
+            ])
+        } catch (error) {
+            console.error("Error fetching dictionaries:", error)
+        }
     }
 
     // Function to fetch definitions
     const fetchDefinitions = async (page: number, size: number) => {
         setLoading(true)
         try {
-            const url = new URL("http://localhost:3001/definitions")
-            url.searchParams.append("page", page.toString())
-            url.searchParams.append("size", size.toString())
+            const params: Record<string, string> = {
+                page: page.toString(),
+                size: size.toString(),
+            }
 
             if (filterWord) {
-                url.searchParams.append("word", filterWord.id)
+                params.word = filterWord.id
             }
 
-            const response = await fetch(url.toString())
+            const data = await apiRequest<DefinitionsResponse>("definitions", "GET", undefined, params)
 
-            if (!response.ok) {
+            if (data) {
+                setDefinitions(data.data)
+                setTotalPages(data.total_pages)
+                setCurrentPage(data.current_page)
+                setTotal(data.total)
+            } else {
                 setDefinitions([])
+                setTotalPages(0)
+                setTotal(0)
             }
-
-            const data: DefinitionsResponse = await response.json()
-            setDefinitions(data.data)
-            setTotalPages(data.total_pages)
-            setCurrentPage(data.current_page)
         } catch (error) {
             console.error("Error fetching definitions:", error)
             setDefinitions([])
+            setTotalPages(0)
+            setTotal(0)
         } finally {
             setLoading(false)
         }
@@ -175,41 +188,34 @@ export default function DefinitionsManagement() {
             setFormError("Vui lòng chọn từ")
             return
         }
-        if (!formWord || !definitionText.trim()) {
+        if (!selectedDictionaryId || !definitionText.trim()) {
             setFormError("Vui lòng điền đầy đủ thông tin bắt buộc")
             return
         }
 
         setSaving(true)
         try {
-            const response = await fetch("http://localhost:3001/definitions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    wordId: formWord.id,
-                    definition: definitionText,
-                    dictionary_name: selectedDictionaryId,
-                    example: exampleText || undefined,
-                }),
+            const response = await apiRequest<Definition>("definitions", "POST", {
+                wordId: formWord.id,
+                definition: definitionText,
+                dictionary_name: selectedDictionaryId,
+                example: exampleText || undefined,
             })
 
-            if (!response.ok) {
+            if (response) {
+                // Refresh definitions list
+                fetchDefinitions(currentPage, pageSize)
+
+                // Reset form
+                setFormWord(null)
+                setSelectedDictionaryId("")
+                setDefinitionText("")
+                setExampleText("")
+                setFormError(null)
+                setIsAddDialogOpen(false)
+            } else {
                 setFormError("Không thể thêm định nghĩa. Vui lòng thử lại sau.")
-                return
             }
-
-            // Refresh definitions list
-            fetchDefinitions(currentPage, pageSize)
-
-            // Reset form
-            setFormWord(null)
-            setSelectedDictionaryId("")
-            setDefinitionText("")
-            setExampleText("")
-            setFormError(null)
-            setIsAddDialogOpen(false)
         } catch (error) {
             console.error("Error adding definition:", error)
             setFormError("Không thể thêm định nghĩa. Vui lòng thử lại sau.")
@@ -227,31 +233,25 @@ export default function DefinitionsManagement() {
 
         setSaving(true)
         try {
-            const response = await fetch(`http://localhost:3001/definitions/${selectedDefinition.id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    dictionary_id: selectedDictionaryId,
-                    definition: definitionText,
-                    example: exampleText || undefined,
-                }),
+            const response = await apiRequest<Definition>(`definitions/${selectedDefinition.id}`, "PUT", {
+                dictionary_name: selectedDictionaryId,
+                definition: definitionText,
+                example: exampleText || undefined,
             })
 
-            if (!response.ok) {
+            if (response) {
+                // Refresh definitions list
+                fetchDefinitions(currentPage, pageSize)
+
+                // Reset form
+                setSelectedDictionaryId("")
+                setDefinitionText("")
+                setExampleText("")
+                setFormError(null)
+                setIsEditDialogOpen(false)
+            } else {
                 setFormError("Không thể cập nhật định nghĩa. Vui lòng thử lại sau.")
             }
-
-            // Refresh definitions list
-            fetchDefinitions(currentPage, pageSize)
-
-            // Reset form
-            setSelectedDictionaryId("")
-            setDefinitionText("")
-            setExampleText("")
-            setFormError(null)
-            setIsEditDialogOpen(false)
         } catch (error) {
             console.error("Error updating definition:", error)
             setFormError("Không thể cập nhật định nghĩa. Vui lòng thử lại sau.")
@@ -266,13 +266,7 @@ export default function DefinitionsManagement() {
 
         setSaving(true)
         try {
-            const response = await fetch(`http://localhost:3001/definitions/${selectedDefinition.id}`, {
-                method: "DELETE",
-            })
-
-            if (!response.ok) {
-                alert("Không thể xóa định nghĩa. Vui lòng thử lại sau.")
-            }
+            const response = await apiRequest<{ success: boolean }>(`definitions/${selectedDefinition.id}`, "DELETE")
 
             // Refresh definitions list
             fetchDefinitions(currentPage, pageSize)
@@ -288,11 +282,7 @@ export default function DefinitionsManagement() {
     // Open edit dialog
     const openEditDialog = (definition: Definition) => {
         setSelectedDefinition(definition)
-
-        // Find dictionary ID from name
-        const dictionary = dictionaries.find((d) => d.name === definition.dictionary_name)
-
-        setSelectedDictionaryId(dictionary?.id || "")
+        setSelectedDictionaryId(definition.dictionary_name)
         setDefinitionText(definition.definition)
         setExampleText(definition.example || "")
         setFormError(null)
@@ -309,6 +299,12 @@ export default function DefinitionsManagement() {
     const handlePageChange = (page: number) => {
         if (page < 1 || page > totalPages) return
         setCurrentPage(page)
+    }
+
+    // Handle page size change
+    const handlePageSizeChange = (size: string) => {
+        setPageSize(Number(size))
+        setCurrentPage(1)
     }
 
     return (
@@ -417,8 +413,25 @@ export default function DefinitionsManagement() {
                     </div>
 
                     {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex justify-center mt-4">
+                    {totalPages > 0 && (
+                        <div className="flex justify-between items-center mt-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-500">
+                                  Hiển thị {definitions.length} / {total} kết quả
+                                </span>
+                                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                                    <SelectTrigger className="w-[100px]">
+                                        <SelectValue placeholder="Số lượng" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="5">5 / trang</SelectItem>
+                                        <SelectItem value="10">10 / trang</SelectItem>
+                                        <SelectItem value="20">20 / trang</SelectItem>
+                                        <SelectItem value="50">50 / trang</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
                             <div className="flex space-x-2">
                                 <Button
                                     variant="outline"
@@ -595,7 +608,7 @@ export default function DefinitionsManagement() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {dictionaries.map((dictionary) => (
-                                        <SelectItem key={dictionary.id} value={dictionary.id}>
+                                        <SelectItem key={dictionary.id} value={dictionary.name}>
                                             {dictionary.name}
                                         </SelectItem>
                                     ))}
@@ -677,4 +690,3 @@ export default function DefinitionsManagement() {
         </div>
     )
 }
-
