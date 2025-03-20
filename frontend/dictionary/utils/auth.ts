@@ -9,8 +9,12 @@ export function withAdminAuth(Component: React.ComponentType) {
     const router = useRouter();
 
     useEffect(() => {
-      // Nếu đã load xong và không có user hoặc user không phải admin
-      if (!loading && (!user || !user.roles?.includes('ADMIN'))) {
+      // Kiểm tra token trong localStorage
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      
+      // Nếu đã load xong và không có token hoặc user không phải admin
+      if (!loading && (!token || !storedUser || !user || !user.roles?.includes('ADMIN'))) {
         router.replace('/login?redirect=' + encodeURIComponent(router.asPath));
       }
     }, [user, loading, router]);
@@ -44,7 +48,10 @@ export function withAuth(Component: React.ComponentType) {
     const router = useRouter();
 
     useEffect(() => {
-      if (!loading && !user) {
+      // Kiểm tra token trong localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!loading && !token) {
         router.replace('/login?redirect=' + encodeURIComponent(router.asPath));
       }
     }, [user, loading, router]);
